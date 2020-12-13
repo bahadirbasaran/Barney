@@ -116,13 +116,13 @@ def get_experiment_path(main_experiment_path, exp_name):
     while True:
         #folder_name = ''.join(random.choice(chars) for _ in range(10))
         folder_name = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-        dump_path = os.path.join(sweep_path, folder_name)
-        if not os.path.isdir(dump_path):
+        experiment_path = os.path.join(sweep_path, folder_name)
+        if not os.path.isdir(experiment_path):
             break
-    # create the dump folder
-    if not os.path.isdir(dump_path):
-        subprocess.Popen("mkdir %s" % dump_path, shell=True).wait()
-    return dump_path
+    # create the experiment folder
+    if not os.path.isdir(experiment_path):
+        subprocess.Popen("mkdir %s" % experiment_path, shell=True).wait()
+    return experiment_path
 
 
 def set_num_threads(n):

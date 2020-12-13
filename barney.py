@@ -7,16 +7,16 @@ from src.args import parse_game_args
 
 
 parser = argparse.ArgumentParser(description='Barney')
-parser.add_argument("--main_experiment_path", type=str, default="./dumped",  help="Main dump path")               
-parser.add_argument("--exp_name", type=str, default="default",   help="Experiment name")
+parser.add_argument("--main_experiment_path", type=str, default="./experiment",  help="Experiment Path")               
+parser.add_argument("--exp_name", type=str, default="default", help="Experiment name")
 args, remaining = parser.parse_known_args()
 assert len(args.exp_name.strip()) > 0
 
 # create a directory for the experiment / create a logger
-dump_path    = get_experiment_path(args.main_experiment_path, args.exp_name)
-logger = get_logger(filepath=os.path.join(dump_path, 'train.log'))
+experiment_path    = get_experiment_path(args.main_experiment_path, args.exp_name)
+logger = get_logger(filepath=os.path.join(experiment_path, 'train.log'))
 logger.info('========== Running DOOM ==========')
-logger.info('Experiment will be saved in: %s'  % dump_path)
+logger.info('Experiment will be saved in: %s'  % experiment_path)
 
 # load DOOM
-parse_game_args(remaining + ['--dump_path', dump_path])
+parse_game_args(remaining + ['--experiment_path', experiment_path])

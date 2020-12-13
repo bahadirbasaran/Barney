@@ -3,7 +3,7 @@ import json
 import torch
 import pickle
 from logging import getLogger
-
+import numpy as np
 
 # Arnold
 from ...utils import set_num_threads, get_device_mapping, bool_flag
@@ -69,7 +69,7 @@ def main(parser, args, parameter_server=None):
     params.eval_time = 900      # evaluation time (in seconds)
 
     # log experiment parameters
-    with open(os.path.join(params.dump_path, 'params.pkl'), 'wb') as f:
+    with open(os.path.join(params.experiment_path, 'params.pkl'), 'wb') as f:
         pickle.dump(params, f)
     logger.info('\n'.join('%s: %s' % (k, str(v))
                           for k, v in dict(vars(params)).items()))
@@ -91,6 +91,7 @@ def main(parser, args, parameter_server=None):
         freedoom=params.freedoom,
         # screen_resolution='RES_400X225',
         use_screen_buffer=params.use_screen_buffer,
+        generate_dataset=params.generate_dataset,
         use_depth_buffer=params.use_depth_buffer,
         labels_mapping=params.labels_mapping,
         game_features=params.game_features,
@@ -110,7 +111,7 @@ def main(parser, args, parameter_server=None):
     network = get_model_class(params.network_type)(params)
     if params.reload:
         logger.info('Reloading model from %s...' % params.reload)
-        model_path = os.path.join(params.dump_path, params.reload)
+        model_path = os.path.join(params.experiment_path, params.reload)
         map_location = get_device_mapping(params.gpu_id)
         reloaded = torch.load(model_path, map_location=map_location)
         network.module.load_state_dict(reloaded)
@@ -120,7 +121,7 @@ def main(parser, args, parameter_server=None):
     if parameter_server:
         assert params.gpu_id == -1
         parameter_server.register_model(network.module)
-
+    
     # Visualize only
     if params.evaluate:
         evaluate_deathmatch(game, network, params)
@@ -140,7 +141,15 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
     """
     logger.info('Evaluating the model...')
     game.statistics = {}
-
+    
+    if params.generate_dataset is True:
+        pathDataset = os.path.join(params.experiment_path, 'dataset')
+        if not os.path.isdir(pathDataset):
+            os.mkdir(pathDataset)
+        dictFrames = {}
+        dictLabels = {}
+        idChunk = 0
+    
     n_features = params.n_features
     if n_features > 0:
         confusion = GameFeaturesConfusionMatrix(params.map_ids_test, n_features)
@@ -186,8 +195,21 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
                                              game.map_id)
 
             sleep = 0.01 if params.evaluate else None
-            game.make_action(action, params.frame_skip, sleep=sleep)
 
+            if params.generate_dataset:
+                if len(dictFrames) == 300:
+                    print("\nRECORDING ----> Chunk%i" % idChunk)
+                    np.savez_compressed(os.path.join(pathDataset, 'chunk%i') % idChunk, **dictFrames, **dictLabels)
+                    #np.savez(os.path.join(pathDataset, 'chunk%i') % idChunk, **dictFrames, **dictLabels)
+                    print("\nChunk%i ----> Recorded!" % idChunk)
+                    idChunk += 1
+                    dictFrames.clear()
+                    dictLabels.clear()
+                
+                dictFrames, dictLabels = game.make_action(action, params.frame_skip, sleep=sleep, frames=dictFrames, labels=dictLabels)
+            else: 
+                game.make_action(action, params.frame_skip, sleep=sleep)
+          
         # close the game
         game.close()
 

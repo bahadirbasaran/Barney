@@ -13,41 +13,26 @@ def parse_game_args(args):
     parser = argparse.ArgumentParser(description='Doom parameters')
 
     # Doom scenario / map ID
-    parser.add_argument("--scenario", type=str, default="deathmatch",
-                        help="Doom scenario")
-    parser.add_argument("--map_ids_train", type=map_ids_flag, default=map_ids_flag("1"),
-                        help="Train map IDs")
-    parser.add_argument("--map_ids_test", type=map_ids_flag, default=map_ids_flag("1"),
-                        help="Test map IDs")
+    parser.add_argument("--scenario", type=str, default="deathmatch", help="Doom scenario")
+    parser.add_argument("--map_ids_train", type=map_ids_flag, default=map_ids_flag("1"), help="Train map IDs")
+    parser.add_argument("--map_ids_test", type=map_ids_flag, default=map_ids_flag("1"), help="Test map IDs")
 
     # general game options (freedoom, screen resolution, available buffers,
     # game features, things to render, history size, frame skip, etc)
-    parser.add_argument("--freedoom", type=bool_flag, default=True,
-                        help="Use freedoom2.wad (as opposed to DOOM2.wad)")
-    parser.add_argument("--height", type=int, default=60,
-                        help="Image height")
-    parser.add_argument("--width", type=int, default=108,
-                        help="Image width")
-    parser.add_argument("--gray", type=bool_flag, default=False,
-                        help="Use grayscale")
-    parser.add_argument("--use_screen_buffer", type=bool_flag, default=True,
-                        help="Use the screen buffer")
-    parser.add_argument("--use_depth_buffer", type=bool_flag, default=False,
-                        help="Use the depth buffer")
-    parser.add_argument("--labels_mapping", type=str, default='',
-                        help="Map labels to different feature maps")
-    parser.add_argument("--game_features", type=str, default='',
-                        help="Game features")
-    parser.add_argument("--render_hud", type=bool_flag, default=False,
-                        help="Render HUD")
-    parser.add_argument("--render_crosshair", type=bool_flag, default=True,
-                        help="Render crosshair")
-    parser.add_argument("--render_weapon", type=bool_flag, default=True,
-                        help="Render weapon")
-    parser.add_argument("--hist_size", type=int, default=4,
-                        help="History size")
-    parser.add_argument("--frame_skip", type=int, default=4,
-                        help="Number of frames to skip")
+    parser.add_argument("--freedoom", type=bool_flag, default=True, help="Use freedoom2.wad (as opposed to DOOM2.wad)")
+    parser.add_argument("--height", type=int, default=60, help="Image height")
+    parser.add_argument("--width", type=int, default=108, help="Image width")
+    parser.add_argument("--gray", type=bool_flag, default=False, help="Use grayscale")
+    parser.add_argument("--use_screen_buffer", type=bool_flag, default=True, help="Use the screen buffer")
+    parser.add_argument("--generate_dataset", type=bool_flag, default=False, help="Generate a dataset of frames")
+    parser.add_argument("--use_depth_buffer", type=bool_flag, default=False, help="Use the depth buffer")
+    parser.add_argument("--labels_mapping", type=str, default='', help="Map labels to different feature maps")
+    parser.add_argument("--game_features", type=str, default='', help="Game features")
+    parser.add_argument("--render_hud", type=bool_flag, default=False, help="Render HUD")
+    parser.add_argument("--render_crosshair", type=bool_flag, default=True, help="Render crosshair")
+    parser.add_argument("--render_weapon", type=bool_flag, default=True, help="Render weapon")
+    parser.add_argument("--hist_size", type=int, default=4, help="History size")
+    parser.add_argument("--frame_skip", type=int, default=4, help="Number of frames to skip")
 
     # Available actions
     # combination of actions the agent is allowed to do.
@@ -78,7 +63,7 @@ def parse_game_args(args):
                         help="Player rank")
 
     # miscellaneous
-    parser.add_argument("--dump_path", type=str, default=".",
+    parser.add_argument("--experiment_path", type=str, default=".",
                         help="Folder to store the models / parameters.")
     parser.add_argument("--visualize", type=bool_flag, default=False,
                         help="Visualize")
@@ -99,7 +84,7 @@ def parse_game_args(args):
     params, _ = parser.parse_known_args(args)
 
     # check parameters
-    assert len(params.dump_path) > 0 and os.path.isdir(params.dump_path)
+    assert len(params.experiment_path) > 0 and os.path.isdir(params.experiment_path)
     assert len(params.scenario) > 0
     assert params.freelook ^ ('look_ud' not in params.action_combinations)
     assert set([params.speed, params.crouch]).issubset(['on', 'off', 'manual'])

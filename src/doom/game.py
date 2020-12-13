@@ -3,6 +3,7 @@ import time
 import math
 from logging import getLogger
 from collections import namedtuple
+import numpy as np
 
 # ViZDoom library
 from vizdoom import DoomGame, GameVariable
@@ -12,7 +13,7 @@ from vizdoom import ScreenResolution, ScreenFormat, Mode
 from .utils import process_buffers
 from .reward import RewardBuilder
 from .actions import add_buttons
-from .labels import parse_labels_mapping
+from .labels import parse_labels_mapping, get_label_type_id
 from .game_features import parse_game_features
 
 
@@ -96,6 +97,7 @@ class Game(object):
         screen_resolution='RES_400X225',
         screen_format='CRCGCB',
         use_screen_buffer=True,
+        generate_dataset=False,
         use_depth_buffer=False,
         labels_mapping='',
         game_features='',
@@ -159,6 +161,7 @@ class Game(object):
         self.screen_resolution = screen_resolution
         self.screen_format = screen_format
         self.use_screen_buffer = use_screen_buffer
+        self.generate_dataset = generate_dataset
         self.use_depth_buffer = use_depth_buffer
         self.labels_mapping = parse_labels_mapping(labels_mapping)
         self.game_features = parse_game_features(game_features)
@@ -613,7 +616,7 @@ class Game(object):
         assert 0 < health <= 100
         self.game.send_game_command("pukename set_value always 5 %i" % health)
 
-    def make_action(self, action, frame_skip=1, sleep=None):
+    def make_action(self, action, frame_skip=1, sleep=None, frames=None, labels=None):
         """
         Make an action.
         If `sleep` is given, the network will wait
@@ -678,19 +681,34 @@ class Game(object):
                 self.game.make_action(manual_action, manual_repeat)
             else:
                 self.game.make_action(action, frame_skip)
-
+        
         # generate buffers
         game_state = self.game.get_state()
         if game_state is not None:
             self._screen_buffer = game_state.screen_buffer
             self._depth_buffer = game_state.depth_buffer
             self._labels_buffer = game_state.labels_buffer
-            self._labels = game_state.labels
-
+            self._labels = game_state.labels                
+                
         # update game variables / statistics rewards
         self.update_game_variables()
         self.update_statistics_and_reward(action)
 
+        if self.generate_dataset:      
+
+            isCombat = False
+
+            for label in self._labels:
+                if get_label_type_id(label) == 0:
+                    isCombat = True
+                    break
+
+            i = len(frames)
+            frames['frame%i' % i] = self._screen_buffer
+            labels['label%i' % i] = isCombat
+    
+            return frames, labels
+            
     @property
     def reward(self):
         """
