@@ -723,7 +723,7 @@ class Game(object):
             elif sceneSelection == "console":
 
                 self.game.send_game_command("toggleconsole")
-                self.game.advance_action(5)           
+                self.game.advance_action(20)           
                 self.updateBuffers()
                 time.sleep(3)
                 
@@ -734,7 +734,7 @@ class Game(object):
                 
                 self.game.send_game_command("menu_main")
                 self.game.send_game_command("closemenu")
-                self.game.advance_action(5)
+                self.game.advance_action(20)
                 self.updateBuffers()
 
                 self.update_game_variables()
@@ -745,7 +745,7 @@ class Game(object):
             elif sceneSelection == "menu":
 
                 self.game.send_game_command("menu_main")
-                self.game.advance_action(5)           
+                self.game.advance_action(20)           
                 self.updateBuffers()
                 time.sleep(3)            
 
@@ -755,7 +755,7 @@ class Game(object):
                     labels['label%i' % i] = [SceneLabels.MENU, datetime.now().strftime("%H:%M:%S.%f")]
 
                 self.game.send_game_command("closemenu")
-                self.game.advance_action(5)
+                self.game.advance_action(20)
                 self.updateBuffers()
 
                 self.update_game_variables()
@@ -766,7 +766,7 @@ class Game(object):
             elif sceneSelection == "scoreboard":
 
                 self.game.send_game_command("+showscores")
-                self.game.advance_action(5)           
+                self.game.advance_action(20)           
                 self.updateBuffers()             
                 time.sleep(3)
 
@@ -777,7 +777,7 @@ class Game(object):
                 
                 self.game.send_game_command("menu_main")
                 self.game.send_game_command("closemenu")
-                self.game.advance_action(5)
+                self.game.advance_action(20)
                 self.updateBuffers()
 
                 self.update_game_variables()
