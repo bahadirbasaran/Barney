@@ -526,8 +526,7 @@ class Game(object):
 
         # deal with a ViZDoom issue
         while self.is_player_dead():
-            logger.warning('Player %i is still dead after respawn.' %
-                           self.params.player_rank)
+            logger.warning('Player %i is still dead after respawn.' % self.params.player_rank)
             self.respawn_player()
 
     def update_bots(self):
@@ -583,7 +582,7 @@ class Game(object):
         self.log('Respawn player')
         self.initialize_game()
 
-    def updateBuffers(self):
+    def update_buffers(self):
         '''
         Get the current game state and update the buffers
         '''
@@ -600,7 +599,7 @@ class Game(object):
         Be sure that properties from the previous
         life are not considered in this one.
         """
-        self.updateBuffers()
+        self.update_buffers()
 
         # actor properties
         self.prev_properties = None
@@ -681,8 +680,76 @@ class Game(object):
                 for _ in range(manual_repeat):
                     self.game.make_action(manual_action)
             else:
-                for _ in range(frame_skip):
+                for _ in range(frame_skip):             
+
                     self.game.make_action(action)
+
+                    if self.generate_dataset:
+
+                        sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[1200, 1, 1, 1])[0]
+
+                        if sceneSelection == "action":
+
+                            sceneLabel = SceneLabels.EXPLORATION
+
+                            self.update_buffers()
+
+                            for label in self._labels:
+                                if get_label_type_id(label) == 0:
+                                    sceneLabel = SceneLabels.COMBAT
+                                    break
+
+                            i = len(frames)
+                            frames['frame%i' % i] = self._screen_buffer
+                            labels['label%i' % i] = [sceneLabel, datetime.now().timestamp() * 1000]
+
+                        elif sceneSelection == "console":
+
+                            self.game.send_game_command("toggleconsole")
+                            self.game.advance_action(20)           
+                            self.update_buffers()
+                            time.sleep(3)
+                            
+                            for _ in range(random.randint(70, 100)):
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = [SceneLabels.CONSOLE, datetime.now().timestamp() * 1000]
+                            
+                            self.game.send_game_command("menu_main")
+                            self.game.send_game_command("closemenu")
+                            self.game.advance_action(20)
+                        
+                        elif sceneSelection == "menu":
+
+                            self.game.send_game_command("menu_main")
+                            self.game.advance_action(20)           
+                            self.update_buffers()
+                            time.sleep(3)            
+
+                            for _ in range(random.randint(70, 100)):
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = [SceneLabels.MENU, datetime.now().timestamp() * 1000]
+
+                            self.game.send_game_command("closemenu")
+                            self.game.advance_action(20)
+
+                        elif sceneSelection == "scoreboard":
+
+                            self.game.send_game_command("+showscores")
+                            self.game.advance_action(20)           
+                            self.update_buffers()             
+                            time.sleep(3)
+
+                            for _ in range(random.randint(70, 100)):
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = [SceneLabels.SCOREBOARD, datetime.now().timestamp() * 1000]
+                            
+                            self.game.send_game_command("menu_main")
+                            self.game.send_game_command("closemenu")
+                            self.game.advance_action(20)
+
                     # death or episode finished
                     if self.is_player_dead() or self.is_episode_finished():
                         break
@@ -696,100 +763,14 @@ class Game(object):
             else:
                 self.game.make_action(action, frame_skip)
         
+
         if self.generate_dataset:
-        
-            sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[400, 1, 1, 1])[0]
-
-            if sceneSelection == "action":
-
-                sceneLabel = SceneLabels.EXPLORATION
-
-                self.updateBuffers()
-
-                for label in self._labels:
-                    if get_label_type_id(label) == 0:
-                        sceneLabel = SceneLabels.COMBAT
-                        break
-
-                i = len(frames)
-                frames['frame%i' % i] = self._screen_buffer
-                labels['label%i' % i] = [sceneLabel, datetime.now().strftime("%H:%M:%S.%f")]
-
-                self.update_game_variables()
-                self.update_statistics_and_reward(action)
-
-                return frames, labels
-            
-            elif sceneSelection == "console":
-
-                self.game.send_game_command("toggleconsole")
-                self.game.advance_action(20)           
-                self.updateBuffers()
-                time.sleep(3)
-                
-                for _ in range(random.randint(40, 70)):
-                    i = len(frames)
-                    frames['frame%i' % i] = self._screen_buffer
-                    labels['label%i' % i] = [SceneLabels.CONSOLE, datetime.now().strftime("%H:%M:%S.%f")]
-                
-                self.game.send_game_command("menu_main")
-                self.game.send_game_command("closemenu")
-                self.game.advance_action(20)
-                self.updateBuffers()
-
-                self.update_game_variables()
-                self.update_statistics_and_reward(action)
-
-                return frames, labels
-            
-            elif sceneSelection == "menu":
-
-                self.game.send_game_command("menu_main")
-                self.game.advance_action(20)           
-                self.updateBuffers()
-                time.sleep(3)            
-
-                for _ in range(random.randint(40, 70)):
-                    i = len(frames)
-                    frames['frame%i' % i] = self._screen_buffer
-                    labels['label%i' % i] = [SceneLabels.MENU, datetime.now().strftime("%H:%M:%S.%f")]
-
-                self.game.send_game_command("closemenu")
-                self.game.advance_action(20)
-                self.updateBuffers()
-
-                self.update_game_variables()
-                self.update_statistics_and_reward(action)
-
-                return frames, labels
-
-            elif sceneSelection == "scoreboard":
-
-                self.game.send_game_command("+showscores")
-                self.game.advance_action(20)           
-                self.updateBuffers()             
-                time.sleep(3)
-
-                for _ in range(random.randint(40, 70)):
-                    i = len(frames)
-                    frames['frame%i' % i] = self._screen_buffer
-                    labels['label%i' % i] = [SceneLabels.SCOREBOARD, datetime.now().strftime("%H:%M:%S.%f")]
-                
-                self.game.send_game_command("menu_main")
-                self.game.send_game_command("closemenu")
-                self.game.advance_action(20)
-                self.updateBuffers()
-
-                self.update_game_variables()
-                self.update_statistics_and_reward(action)
-
-                return frames, labels
-
-            # elif sceneSelection == "cutscene":
-            #     pass
+            self.update_game_variables()
+            self.update_statistics_and_reward(action)
+            return frames, labels
         
         else:
-            self.updateBuffers()
+            self.update_buffers()
             self.update_game_variables()
             self.update_statistics_and_reward(action)
             

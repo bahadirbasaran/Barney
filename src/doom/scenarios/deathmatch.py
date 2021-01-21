@@ -202,7 +202,7 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
                 dictFrames, dictLabels = game.make_action(action, params.frame_skip, sleep=sleep, frames=dictFrames, labels=dictLabels)
 
                 n_action += 1
-                if n_action == 1000:
+                if n_action == 1200:
                     print("\nRECORDING ----> Chunk%i" % idChunk)
                     np.savez_compressed(os.path.join(pathDataset, 'chunk%i') % idChunk, **dictFrames, **dictLabels)
                     print("\nChunk%i ----> RECORDED!\n" % idChunk)

@@ -118,3 +118,7 @@ python3 barney.py --exp_name map_id_7 --main_experiment_path $PWD/experiment \
 --num_players ${P} --n_bots ${B} --human_player ${H} \
 --reload $PWD/pretrained/deathmatch_shotgun.pth --evaluate 1 --visualize 1 --gpu_id -1 --generate_dataset ${D}
 fi
+
+if [ "$1" == "dataset_builder" ]; then
+python3 dataset_builder.py ${2} ${3}
+fi
