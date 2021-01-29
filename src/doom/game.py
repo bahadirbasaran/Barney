@@ -710,7 +710,7 @@ class Game(object):
                             self.update_buffers()
                             time.sleep(3)
                             
-                            for _ in range(random.randint(70, 100)):
+                            for _ in range(random.randint(70, 140)):
                                 i = len(frames)
                                 frames['frame%i' % i] = self._screen_buffer
                                 labels['label%i' % i] = [SceneLabels.CONSOLE, datetime.now().timestamp() * 1000]
@@ -726,7 +726,7 @@ class Game(object):
                             self.update_buffers()
                             time.sleep(3)            
 
-                            for _ in range(random.randint(70, 100)):
+                            for _ in range(random.randint(70, 140)):
                                 i = len(frames)
                                 frames['frame%i' % i] = self._screen_buffer
                                 labels['label%i' % i] = [SceneLabels.MENU, datetime.now().timestamp() * 1000]
@@ -741,7 +741,7 @@ class Game(object):
                             self.update_buffers()             
                             time.sleep(3)
 
-                            for _ in range(random.randint(70, 100)):
+                            for _ in range(random.randint(70, 140)):
                                 i = len(frames)
                                 frames['frame%i' % i] = self._screen_buffer
                                 labels['label%i' % i] = [SceneLabels.SCOREBOARD, datetime.now().timestamp() * 1000]

@@ -6,6 +6,8 @@ from PIL import Image
 from itertools import product
 from plot_video_bitrate import PlotVideoBitrate
 
+FPS = 35
+
 class SceneLabels():
     EXPLORATION = 0
     COMBAT      = 1
@@ -64,11 +66,11 @@ def build_dataset(categorical=False, videoOnly=False):
                     # t_lastFrame_ms  = data.get('label%i' % (n_frame - 1))[1]
                     # t_elapsed_s = (t_lastFrame_ms - t_firstFrame_ms) / 1000
                     # fps = int(round(n_frame / t_elapsed_s))
-                    fps = 35
-                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -crf 1 -loglevel quiet ../chunk%i_%ifps.mp4" % (fps, "frame%04d.png", j, fps), shell=True, cwd=path_frames).wait()
+                
+                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -crf 1 -loglevel quiet ../chunk%i_%ifps.mp4" % (FPS, "frame%04d.png", j, FPS), shell=True, cwd=path_frames).wait()
                     print("Chunk%i.mp4 has been recorded!" % j)
-                    subprocess.Popen("plotbitrate -o chunk%i_%ifps.svg chunk%i_%ifps.mp4" % (j, fps, j, fps), shell=True, cwd=path_chunk).wait()
-                    print("Chunk%i_%ifps.svg has been created!" % (j, fps))
+                    subprocess.Popen("plotbitrate -o chunk%i_%ifps.svg chunk%i_%ifps.mp4" % (j, FPS, j, FPS), shell=True, cwd=path_chunk).wait()
+                    print("Chunk%i_%ifps.svg has been created!" % (j, FPS))
                     if videoOnly:
                         print("Frames inside [%s] are being destroyed..." % path_frames)
                         subprocess.Popen("rm -f *.png", shell=True, cwd=path_frames).wait()
@@ -83,7 +85,7 @@ def build_dataset(categorical=False, videoOnly=False):
                         videoPaths = []
 
                         n_label = n_exploration = n_combat = n_menu = n_console = n_scoreboard = 0
-                        while data.get('label%i' %n_label) is not None:
+                        while data.get('label%i' %n_label):
 
                             arr = data.get('frame%i' %n_label)
                             arr = np.moveaxis(arr , 0, -1) 
@@ -146,9 +148,9 @@ def build_dataset(categorical=False, videoOnly=False):
                         for path in [path_exploration, path_combat, path_menu, path_console, path_scoreboard]:
                             if os.path.exists(path):
                                 subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -crf 1 -loglevel quiet chunk%i_%s_%ifps.mp4" 
-                                    % (fps, "frame%04d.png", j, path.split('/')[-1], fps), shell=True, cwd=path).wait()
-                                #subprocess.Popen("plotbitrate -o chunk%i.svg chunk%i_%ifps.mp4" % (j, j, fps), shell=True, cwd=path).wait()
-                                videoPaths.append(path + "/chunk%i_%s_%ifps.mp4" % (j, path.split('/')[-1], fps))
+                                    % (FPS, "frame%04d.png", j, path.split('/')[-1], FPS), shell=True, cwd=path).wait()
+                                #subprocess.Popen("plotbitrate -o chunk%i.svg chunk%i_%ifps.mp4" % (j, j, FPS), shell=True, cwd=path).wait()
+                                videoPaths.append(path + "/chunk%i_%s_%ifps.mp4" % (j, path.split('/')[-1], FPS))
                                 if videoOnly:
                                     print("Frames inside [%s] are being destroyed..." % path)
                                     subprocess.Popen("rm -f *.png", shell=True, cwd=path).wait()
