@@ -686,7 +686,7 @@ class Game(object):
 
                     if self.generate_dataset:
 
-                        sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[1200, 1, 1, 1])[0]
+                        sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[1000, 1, 1, 1])[0]
 
                         if sceneSelection == "action":
 
@@ -701,7 +701,7 @@ class Game(object):
 
                             i = len(frames)
                             frames['frame%i' % i] = self._screen_buffer
-                            labels['label%i' % i] = [sceneLabel, datetime.now().timestamp() * 1000]
+                            labels['label%i' % i] = sceneLabel
 
                         elif sceneSelection == "console":
 
@@ -710,10 +710,10 @@ class Game(object):
                             self.update_buffers()
                             time.sleep(3)
                             
-                            for _ in range(random.randint(70, 140)):
+                            for _ in range(random.choice([140, 175, 210])):
                                 i = len(frames)
                                 frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = [SceneLabels.CONSOLE, datetime.now().timestamp() * 1000]
+                                labels['label%i' % i] = SceneLabels.CONSOLE
                             
                             self.game.send_game_command("menu_main")
                             self.game.send_game_command("closemenu")
@@ -726,10 +726,10 @@ class Game(object):
                             self.update_buffers()
                             time.sleep(3)            
 
-                            for _ in range(random.randint(70, 140)):
+                            for _ in range(random.choice([140, 175, 210])):
                                 i = len(frames)
                                 frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = [SceneLabels.MENU, datetime.now().timestamp() * 1000]
+                                labels['label%i' % i] = SceneLabels.MENU
 
                             self.game.send_game_command("closemenu")
                             self.game.advance_action(20)
@@ -741,10 +741,10 @@ class Game(object):
                             self.update_buffers()             
                             time.sleep(3)
 
-                            for _ in range(random.randint(70, 140)):
+                            for _ in range(random.choice([140, 175, 210])):
                                 i = len(frames)
                                 frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = [SceneLabels.SCOREBOARD, datetime.now().timestamp() * 1000]
+                                labels['label%i' % i] = SceneLabels.SCOREBOARD
                             
                             self.game.send_game_command("menu_main")
                             self.game.send_game_command("closemenu")

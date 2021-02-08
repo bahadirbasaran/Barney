@@ -1,10 +1,11 @@
 import os
 import sys
+import csv
 import subprocess
 import numpy as np
 from PIL import Image
 from itertools import product
-from plot_video_bitrate import PlotVideoBitrate
+from dataset_analyzer import DatasetAnalyzer
 
 FPS = 35
 
@@ -16,7 +17,7 @@ class SceneLabels():
     SCOREBOARD  = 4
     CUTSCENE    = 5
 
-def build_dataset(categorical=False, videoOnly=False):
+def build_dataset():
 
     if not os.path.exists("./experiment"):
         print("There is no experiment to be used to generate a dataset!")
@@ -37,132 +38,78 @@ def build_dataset(categorical=False, videoOnly=False):
                 j = 0
                 while os.path.isfile("%s/chunk%i.npz" %(path_dataset, j)):
 
-                    path_chunk  = path_dataset + "/chunk%i" % j
-                    path_frames = path_chunk + "/frames"
+                    path_chunk = path_dataset + "/chunk%i" % j
                     
                     if os.path.exists(path_chunk):
                         break
                     else:
                         os.mkdir(path_chunk)
-                        os.mkdir(path_frames)
 
                     data = np.load("%s.npz" % path_chunk)
                     
-                    n_frame = 0
-                    while data.get('frame%i' %n_frame) is not None: 
-
-                        arr = data.get('frame%i' %n_frame)
-                        arr = np.moveaxis(arr , 0, -1) 
-                        im = Image.fromarray(arr)
-                        frame = "frame{0:04d}.png".format(n_frame)
-                        im.save("%s/%s" % (path_frames, frame))
+                    n = 0
+                    while data.get('frame%i' % n) is not None:
+                        arr   = data.get('frame%i' % n)
+                        arr   = np.moveaxis(arr , 0, -1) 
+                        img   = Image.fromarray(arr)
+                        frame = "frame{0:05d}.png".format(n)
+                        img.save("%s/%s" % (path_chunk, frame))
                         print(frame) 
-                        n_frame += 1
-
+                        n += 1
                     print("%s has been created!" % path_chunk)
 
-                    # 'fps' is calculated based on time difference between the first and last labels in the chunk. 
-                    # t_firstFrame_ms = data.get('label0')[1]
-                    # t_lastFrame_ms  = data.get('label%i' % (n_frame - 1))[1]
-                    # t_elapsed_s = (t_lastFrame_ms - t_firstFrame_ms) / 1000
-                    # fps = int(round(n_frame / t_elapsed_s))
-                
-                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -crf 1 -loglevel quiet ../chunk%i_%ifps.mp4" % (FPS, "frame%04d.png", j, FPS), shell=True, cwd=path_frames).wait()
-                    print("Chunk%i.mp4 has been recorded!" % j)
-                    subprocess.Popen("plotbitrate -o chunk%i_%ifps.svg chunk%i_%ifps.mp4" % (j, FPS, j, FPS), shell=True, cwd=path_chunk).wait()
-                    print("Chunk%i_%ifps.svg has been created!" % (j, FPS))
-                    if videoOnly:
-                        print("Frames inside [%s] are being destroyed..." % path_frames)
-                        subprocess.Popen("rm -f *.png", shell=True, cwd=path_frames).wait()
+                    videoName = "chunk%i_400kbps.mp4" % j
+                    #subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -crf 24 -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
+                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 400k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
+                    subprocess.Popen("plotbitrate -f csv_raw -o raw_400kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
+                    print("%s has been recorded!" % videoName)
+                    videoName = "chunk%i_500kbps.mp4" % j
+                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 500k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
+                    subprocess.Popen("plotbitrate -f csv_raw -o raw_500kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
+                    print("%s has been recorded!" % videoName)
+                    videoName = "chunk%i_600kbps.mp4" % j
+                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 600k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
+                    subprocess.Popen("plotbitrate -f csv_raw -o raw_600kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
+                    print("%s has been recorded!" % videoName)
 
-                    if categorical:
+                    print("Frames inside [%s] are being destroyed..." % path_chunk)
+                    subprocess.Popen("rm -f *.png", shell=True, cwd=path_chunk).wait()
+
+                    # Append corresponding game stage into each frame in csv
+                    for csvName, outputName in zip(["raw_400kbps.csv", "raw_500kbps.csv", "raw_600kbps.csv"],
+                                                   ["frames_400kbps.csv", "frames_500kbps.csv", "frames_600kbps.csv"]):
+
+                        with open("%s/%s" % (path_chunk, csvName), 'r') as csvInput, \
+                                open("%s/%s" % (path_chunk, outputName), 'w') as csvOutput:
+
+                            csvWriter = csv.writer(csvOutput, lineterminator='\n')
+                            csvReader = csv.reader(csvInput)
+                            rows = []
+
+                            header = next(csvReader)
+                            header.append("gamestage")
+                            rows.append(header)
+
+                            for n, row in enumerate(csvReader):
+                                #append the game stage
+                                stage = int(data.get('label%i' % n))
+                                row.append(stage)
+                                rows.append(row)
+
+                            csvWriter.writerows(rows)
+                    
+                    subprocess.Popen("rm -f raw*.csv", shell=True, cwd=path_chunk).wait()
+
+                    for inputName in ["frames_400kbps.csv", "frames_500kbps.csv", "frames_600kbps.csv"]:
+                    
+                        pathCSV = "%s/%s" % (path_chunk, inputName)
                         
-                        path_exploration = path_frames + "/exploration"
-                        path_combat      = path_frames + "/combat"
-                        path_menu        = path_frames + "/menu"
-                        path_console     = path_frames + "/console"
-                        path_scoreboard  = path_frames + "/scoreboard"
-                        videoPaths = []
+                        obj = DatasetAnalyzer(pathCSV) 
+                        obj.read_CSV()
 
-                        n_label = n_exploration = n_combat = n_menu = n_console = n_scoreboard = 0
-                        while data.get('label%i' %n_label):
-
-                            arr = data.get('frame%i' %n_label)
-                            arr = np.moveaxis(arr , 0, -1) 
-                            im = Image.fromarray(arr)
-                            
-                            stageCategory = data.get('label%i' %n_label)[0]
-
-                            if stageCategory == SceneLabels.EXPLORATION:
-
-                                if not os.path.exists(path_exploration):
-                                    os.mkdir(path_exploration)
-                                            
-                                frame = "frame{0:04d}.png".format(n_exploration)
-                                im.save("%s/%s" % (path_exploration, frame))
-                                print(path_exploration, frame)
-                                n_exploration += 1
-
-                            elif stageCategory == SceneLabels.COMBAT:
-
-                                if not os.path.exists(path_combat):
-                                    os.mkdir(path_combat)
-                                            
-                                frame = "frame{0:04d}.png".format(n_combat)
-                                im.save("%s/%s" % (path_combat, frame))
-                                print(path_combat, frame)
-                                n_combat += 1
-
-                            elif stageCategory == SceneLabels.MENU:
-
-                                if not os.path.exists(path_menu):
-                                    os.mkdir(path_menu)
-                                            
-                                frame = "frame{0:04d}.png".format(n_menu)
-                                im.save("%s/%s" % (path_menu, frame))
-                                print(path_menu, frame)
-                                n_menu += 1
-                            
-                            elif stageCategory == SceneLabels.CONSOLE:
-
-                                if not os.path.exists(path_console):
-                                    os.mkdir(path_console)
-                                            
-                                frame = "frame{0:04d}.png".format(n_console)
-                                im.save("%s/%s" % (path_console, frame))
-                                print(path_console, frame)
-                                n_console += 1
-
-                            elif stageCategory == SceneLabels.SCOREBOARD:
-
-                                if not os.path.exists(path_scoreboard):
-                                    os.mkdir(path_scoreboard)
-                                            
-                                frame = "frame{0:04d}.png".format(n_scoreboard)
-                                im.save("%s/%s" % (path_scoreboard, frame))
-                                print(path_scoreboard, frame)
-                                n_scoreboard += 1
-
-                            n_label += 1
-
-                        for path in [path_exploration, path_combat, path_menu, path_console, path_scoreboard]:
-                            if os.path.exists(path):
-                                subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -crf 1 -loglevel quiet chunk%i_%s_%ifps.mp4" 
-                                    % (FPS, "frame%04d.png", j, path.split('/')[-1], FPS), shell=True, cwd=path).wait()
-                                #subprocess.Popen("plotbitrate -o chunk%i.svg chunk%i_%ifps.mp4" % (j, j, FPS), shell=True, cwd=path).wait()
-                                videoPaths.append(path + "/chunk%i_%s_%ifps.mp4" % (j, path.split('/')[-1], FPS))
-                                if videoOnly:
-                                    print("Frames inside [%s] are being destroyed..." % path)
-                                    subprocess.Popen("rm -f *.png", shell=True, cwd=path).wait()
-                        
-                        for window, shift in list(product([25, 30, 35, 40, 45], [None, 1, 2, 3, 4, 5])):
-                            if shift is None:
-                                objPlot = PlotVideoBitrate(videoPaths, path_chunk + "/chunk%s_w%i.png" % (j, window), window, shift)
-                            else:
-                                objPlot = PlotVideoBitrate(videoPaths, path_chunk + "/chunk%s_w%i_s%i.png" % (j, window, shift), window, shift)
-                            objPlot.generate_CSV()
-                            objPlot.read_CSV()
-                            objPlot.plot()
+                        for length in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+                            obj = DatasetAnalyzer(pathCSV, smooth="exp", windowLength=length)
+                            obj.read_CSV()
                     
                     j += 1
 
@@ -170,12 +117,5 @@ def build_dataset(categorical=False, videoOnly=False):
 
 if __name__ == "__main__":
 
-    if(all(arg in sys.argv for arg in ["--categorical", "--videoOnly"])):
-        build_dataset(categorical=True, videoOnly=True)
-    elif("--categorical" in sys.argv):
-        build_dataset(categorical=True)
-    elif("--videoOnly" in sys.argv):
-        build_dataset(videoOnly=True)
-    else:
-        build_dataset()
+    build_dataset()
         
