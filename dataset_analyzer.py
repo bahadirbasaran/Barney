@@ -194,7 +194,7 @@ class DatasetAnalyzer():
         plt.gca().xaxis.set_major_locator(MultipleLocator(60))
         plt.gca().yaxis.set_major_locator(MultipleLocator(100))
         plt.xlabel('Time (sec)')
-        plt.ylabel("Bitrate (kbit/sec)")
+        plt.ylabel("Bitrate (kilobit/sec)")
         plt.legend()
         plt.grid(True, axis="y")
         plt.savefig("%s/%s.png" % (self.pathOutput, figureName))
@@ -202,6 +202,8 @@ class DatasetAnalyzer():
     def get_statistics(self, figureName):
         
         dfInput = pd.read_csv("%s/%s.csv" % (self.pathOutput, figureName))
+
+        mean_overall = round(dfInput['size'].mean() * 8 / 1000, 2)
 
         count_total = dfInput.shape[0]
 
@@ -247,9 +249,9 @@ class DatasetAnalyzer():
         dom_scoreboard   = round(count_scoreboard * 100 / count_total , 2)
 
         data = {"Gamestage":        ["Exploration", "Combat", "Menu", "Console", "Scoreboard"],
-                "Min (kB)":         [min_exploration, min_combat, min_menu, min_console, min_scoreboard],
-                "Max (kB)":         [max_exploration, max_combat, max_menu, max_console, max_scoreboard],
-                "Mean (kB)":        [mean_exploration,mean_combat, mean_menu, mean_console, mean_scoreboard],
+                "Min (kilobit)":    [min_exploration, min_combat, min_menu, min_console, min_scoreboard],
+                "Max (kilobit)":    [max_exploration, max_combat, max_menu, max_console, max_scoreboard],
+                "Mean (kilobit)\n(Overall: {:.2f})".format(mean_overall): [mean_exploration,mean_combat, mean_menu, mean_console, mean_scoreboard],
                 "Coeff. Variation": [cv_exploration, cv_combat, cv_menu, cv_console, cv_scoreboard],
                 "Dominance (%)":    [dom_exploration, dom_combat, dom_menu, dom_console, dom_scoreboard]}
 
