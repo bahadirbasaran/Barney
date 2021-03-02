@@ -1,13 +1,18 @@
-# Dependency: plotbitrate
-
 import csv
-import subprocess
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
-from itertools import islice
+import seaborn as sns
 from copy import deepcopy
+from enum import IntEnum
+
+class GameStage(IntEnum):
+    EXPLORATION = 0
+    COMBAT      = 1
+    MENU        = 2
+    CONSOLE     = 3
+    SCOREBOARD  = 4
+    DEATH       = 5
 
 class DatasetAnalyzer():
     def __init__(self, pathCSV, smooth=None, windowLength=None):
@@ -18,14 +23,12 @@ class DatasetAnalyzer():
         self.smooth       = smooth
         if not smooth:
             self.fileName = pathCSV.split('.')[1].split('.')[0].split('/')[-1]
-        elif smooth == "exp":
-            self.fileName = "%s_smooth_exp_w%i" % (pathCSV.split('.')[1].split('.')[0].split('/')[-1], self.windowLength)
-            self.moving_average(exponential=True)
-        elif smooth == "simple":
-            self.fileName = "%s_smooth_simple_w%i" % (pathCSV.split('.')[1].split('.')[0].split('/')[-1], self.windowLength)
-            self.moving_average(exponential=False)
+        else:
+            self.fileName = "%s_smooth_w%i" % (pathCSV.split('.')[1].split('.')[0].split('/')[-1], self.windowLength)
+            self.exp_moving_average()
 
-        self.videoData    = {}
+        self.videoData = {}
+        self.kbpsOverall = 0
 
     def read_CSV(self):
 
@@ -35,9 +38,8 @@ class DatasetAnalyzer():
             next(csvReader)
 
             # Fetch the first row seperately for stage comparison
-            firstRow  = next(csvReader)
-            chunkSize = float(firstRow[1])
-            stage     = firstRow[3]
+            firstRow = next(csvReader)
+            stage    = firstRow[3]
             secStageFirst = float(firstRow[0])
 
             # To keep the last row before new game stage
@@ -45,165 +47,128 @@ class DatasetAnalyzer():
             
             for row in csvReader:
                 
-                if row[3] == stage:
-                    chunkSize += int(row[1])
-                
-                else:
-                    sec      = float(row[0])
-                    timeDiff = sec - secStageFirst
-                    chunkSize_kb = chunkSize * 8 / 1000
-                    kbps     = int(chunkSize_kb / timeDiff)
-                    stage    = int(tmpRow[3])
-                    self.videoData.update({round(sec, 2): [kbps, stage]})
+                if row[3] != stage:
+                    sec   = float(row[0])
+                    stage = int(tmpRow[3])
+                    self.videoData.update({round(sec, 6): stage})
 
                     # Update
                     secStageFirst = float(row[0])
-                    chunkSize = float(row[1])
                     stage = row[3]
                     
                 tmpRow = deepcopy(row)
             
             # For the last game stage seconds. They are not saved with the code block above because they won't see different stage afterward.
-            sec = float(tmpRow[0])
-            timeDiff = sec - secStageFirst
-            chunkSize_kb = chunkSize * 8 / 1000
-            kbps     = int(chunkSize_kb / timeDiff)
-            stage    = int(tmpRow[3])
-            self.videoData.update({round(sec, 2): [kbps, stage]})
+            sec   = float(tmpRow[0])
+            stage = int(tmpRow[3])
+            self.videoData.update({round(sec, 6): stage})
         
-        self.plot(self.fileName)
-        self.get_statistics(self.fileName)
+        self.get_statistics()
+        self.plot()
 
-    def moving_average(self, exponential):
+    def exp_moving_average(self):
 
-        with open(self.pathCSV, 'r') as csvInput, \
-                open("%s/%s.csv" % (self.pathOutput, self.fileName), 'w') as csvOutput:
+        with open("%s/%s.csv" % (self.pathOutput, self.fileName), 'w') as csvOutput:
 
             csvWriter = csv.writer(csvOutput, lineterminator='\n')
-            csvReader = csv.reader(csvInput)
+
+            dfInput = pd.read_csv(self.pathCSV)
             newRows = []
+            newRows.append(dfInput.columns)
 
-            #skip the first row 
-            header = next(csvReader)
-            newRows.append(header)
-
-            # Simple Moving Average                                         
-            if not exponential:
-                pass
-                # cursor, shiftCursor, windowSize, n = 0, 0, 0, 0
-                # isFirstRow, isSameStage = True, True
-                # while True:
-                #     # keep the window elements in the list "rows"
-                #     rows = [row for row in islice(csvReader, cursor, cursor+self.windowLength)]
-                #     if not rows:
-                #         break
-
-                #     # first frame of the current window
-                #     if isFirstRow:
-                #         stage = rows[0][3]
-                #         isFirstRow = False
-                    
-                #     for indice, row in enumerate(rows, start=1):
-                #         if row[3] == stage:
-                #             windowSize += int(row[1])
-                #             n += 1
-                #             windowAvg = windowSize // n
-                #             newRows.append([row[0], str(windowAvg), row[2], row[3]])
-                #             isSameStage = True
-                        
-                #         # Frame belonging to different game stage
-                #         else:
-                #             stage = row[3]
-                #             isSameStage = False
-                #             shiftCursor = indice-1
-                #             break
-                    
-                #     if isSameStage:
-                #         cursor += 1
-                #     else:
-                #         cursor += shiftCursor
-                    
-                #     windowSize, n = 0, 0 
-                           
-            # Exponential Moving Average
-            else:
-                # Smoothing factor
-                alpha = 2 / (self.windowLength + 1)
-
-                # Fetch the first row seperately for stage comparison
-                firstRow = next(csvReader)
-                sec   = firstRow[0]
-                type  = firstRow[2]
-                stage = firstRow[3]
-                formerEMA = int(float(firstRow[1]))
-
-                newRows.append([sec, str(formerEMA), type, stage])
-
-                for row in csvReader:
-                    if row[3] == stage:
-                        formerEMA = alpha * (float(row[1]) - formerEMA) + formerEMA
-                    
-                    # Different game stage than the former one
-                    else:
-                        stage = row[3]
-                        formerEMA = float(row[1])
-
-                    newRows.append([row[0], str(round(formerEMA)), row[2], row[3]])    
+            dfInput['EMA'] = dfInput['size'].ewm(span=self.windowLength, adjust=False).mean()
+            
+            for _, row in dfInput.iterrows():
+                newRows.append([str(round(row['time'], 6)), str(round(row['EMA'])), row['pict_type'], row['gamestage']])
 
             csvWriter.writerows(newRows)
 
+        """ Calculation without using Pandas method (faster approach) """
+        # with open(self.pathCSV, 'r') as csvInput, \
+        #         open("%s/%s.csv" % (self.pathOutput, self.fileName), 'w') as csvOutput:
 
-    def plot(self, figureName):
-        plt.style.use('seaborn')
+        #     csvWriter = csv.writer(csvOutput, lineterminator='\n')
+        #     csvReader = csv.reader(csvInput)
+        #     newRows = []
 
-        if self.smooth == "exp":
-            plt.figure(figsize=[28, 8]).canvas
-            plt.title("Bitrate/Time per Game Stage [E.M.A with alpha: {:.3f}]".format(2 / (self.windowLength+1)))
-        elif self.smooth == "simple":
-            plt.figure(figsize=[28, 8]).canvas
-            plt.title("Bitrate/Time per Game Stage [Simple Moving Average with Window Length: %i]" % self.windowLength)
-        else:
-            plt.figure(figsize=[28, 8]).canvas
-            plt.title("Bitrate/Time per Game Stage")
+        #     #skip the first row 
+        #     header = next(csvReader)
+        #     newRows.append(header)
 
-        legendMap = {0: ["darkblue", "Exploration"],
-                     1: ["yellow", "Combat"],
-                     2: ["darkorange", "Menu"],
-                     3: ["lime", "Console"],
-                     4: ["cyan", "Scoreboard"]}
+        #     # Smoothing factor
+        #     alpha = 2 / (self.windowLength + 1)  
 
-        x = sorted(list(self.videoData.keys()))     # sorted in case of older Python versions
-        y = [self.videoData[xi][0] for xi in x]
-        #plt.step([0] + x, [y[0]] + y, color='black', ls=':', lw=0.5, where='pre')
-        usedLegendIDs = []        
-        
-        for xi0, xi1, yi in zip([0] + x[:-1], x, y):
-            legendID = self.videoData[xi1][1]
-            color, label = legendMap[legendID]
-            if legendID in usedLegendIDs:
-                label = None
-            else:
-                usedLegendIDs.append(legendID)
+        #     # Fetch the first row seperately
+        #     firstRow = next(csvReader)
+        #     sec   = firstRow[0]
+        #     type  = firstRow[2]
+        #     stage = firstRow[3]
+        #     formerEMA = int(float(firstRow[1]))
+        #     newRows.append([sec, str(formerEMA), type, stage])
+
+        #     for row in csvReader: 
+        #         formerEMA = alpha * (float(row[1]) - formerEMA) + formerEMA
+        #         newRows.append([row[0], str(round(formerEMA)), row[2], row[3]])    
+
+        #     csvWriter.writerows(newRows)
+
+
+    def plot(self):
+
+        sns.set(rc={'figure.figsize': (18, 6)})
+        sns.set_theme()
+
+        usedLegends = []  
+        legendMap = {GameStage.EXPLORATION: ["darkblue", "Exploration"],
+                     GameStage.COMBAT:      ["red", "Combat"],
+                     GameStage.MENU:        ["darkorange", "Menu"],
+                     GameStage.CONSOLE:     ["lime", "Console"],
+                     GameStage.SCOREBOARD:  ["cyan", "Scoreboard"],
+                     GameStage.DEATH:       ["blue", "Death"]}  
+                   
+        dfInput = pd.read_csv("%s/%s.csv" % (self.pathOutput, self.fileName))
+        dfInput['bitrate_kbps'] = dfInput['size'].rolling(window=35).sum() * 8 // 1000    
+
+        fig = sns.lineplot(data=dfInput, x="time", y="bitrate_kbps", color='black', linewidth=1)
+
+        formerSec = 0
+        for sec, stage in self.videoData.items():
+
+            if stage != GameStage.DEATH:
             
-            # In case of plotting both bar and line graphs, leave one "label" parameter out.
-            #plt.plot([xi0, xi1], [yi] * 2, color=color, label=label)
-            plt.bar(xi0, yi, width=xi1-xi0, align='edge', color=color, label=label, alpha=0.4)
-            plt.margins(x=0)
+                color, label = legendMap[stage]
+                if stage in usedLegends:
+                    label = None
+                else:
+                    usedLegends.append(stage)
+                
+                plt.axvspan(formerSec, sec, facecolor=color, alpha=0.15, label=label)
+                formerSec = sec  
+                
+            else:
+                color, label = legendMap[GameStage.DEATH]
+                if label in usedLegends:
+                    label = None
+                else:
+                    usedLegends.append(label)
 
-        plt.xticks(x)
-        plt.gca().xaxis.set_major_locator(MultipleLocator(60))
-        plt.gca().yaxis.set_major_locator(MultipleLocator(100))
-        plt.xlabel('Time (sec)')
-        plt.ylabel("Bitrate (kilobit/sec)")
-        plt.legend()
-        plt.grid(True, axis="y")
-        plt.savefig("%s/%s.png" % (self.pathOutput, figureName))
-
-    def get_statistics(self, figureName):
+                plt.axvline(sec, color=color, linestyle="--", linewidth=0.5, label=label)
         
-        dfInput = pd.read_csv("%s/%s.csv" % (self.pathOutput, figureName))
+        if self.smooth:
+            plt.title("Bitrate/Time per Game Stage [E.M.A with alpha: {:.3f}] - [Overall kbps: {:.3f}]".format(2 / (self.windowLength+1), self.kbpsOverall))
+        else:
+            plt.title("Bitrate/Time per Game Stage [Overall kbps: {:.3f}]".format(self.kbpsOverall))
 
-        mean_overall = round(dfInput['size'].mean() * 8 / 1000, 2)
+        plt.legend(facecolor='white', framealpha=1, loc="upper right") 
+        plt.margins(x=0)
+        fig.figure.savefig("%s/%s.png" % (self.pathOutput, self.fileName), bbox_inches = "tight")
+        plt.clf()
+
+    def get_statistics(self):
+        
+        dfInput = pd.read_csv("%s/%s.csv" % (self.pathOutput, self.fileName))
+
+        self.kbpsOverall = round((dfInput['size'].sum() / sorted(list(self.videoData.keys()))[-1]) * 8 / 1000, 2)          
 
         count_total = dfInput.shape[0]
 
@@ -251,11 +216,10 @@ class DatasetAnalyzer():
         data = {"Gamestage":        ["Exploration", "Combat", "Menu", "Console", "Scoreboard"],
                 "Min (kilobit)":    [min_exploration, min_combat, min_menu, min_console, min_scoreboard],
                 "Max (kilobit)":    [max_exploration, max_combat, max_menu, max_console, max_scoreboard],
-                "Mean (kilobit)\n(Overall: {:.2f})".format(mean_overall): [mean_exploration,mean_combat, mean_menu, mean_console, mean_scoreboard],
+                "Mean (kilobit)":   [mean_exploration,mean_combat, mean_menu, mean_console, mean_scoreboard],
                 "Coeff. Variation": [cv_exploration, cv_combat, cv_menu, cv_console, cv_scoreboard],
-                "Dominance (%)":    [dom_exploration, dom_combat, dom_menu, dom_console, dom_scoreboard]}
+                "Fraction (%)":     [dom_exploration, dom_combat, dom_menu, dom_console, dom_scoreboard]}
 
-        #dfOutput = pd.DataFrame(data, index =['Exploration', 'Combat', 'Menu', 'Console', 'Scoreboard']) 
         dfOutput = pd.DataFrame(data) 
 
         def render_mpl_table(data, col_width=3.0, row_height=0.625, font_size=14, header_color='#40466e', edge_color='w',
@@ -278,5 +242,6 @@ class DatasetAnalyzer():
             return ax.get_figure(), ax
 
         fig,ax = render_mpl_table(dfOutput)
-        fig.savefig("%s/%s_stats.png" % (self.pathOutput, figureName))
+        fig.savefig("%s/%s_stats.png" % (self.pathOutput, self.fileName))
+        plt.clf()
    
