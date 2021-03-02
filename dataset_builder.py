@@ -89,7 +89,7 @@ def build_dataset():
 
                             csvWriter.writerows(rows)
 
-                            break # To avoid processing the 500-600 kbps csv files. 
+                            break   # To avoid processing the "_500/600kbps" csv files. 
                     
                     subprocess.Popen("rm -f raw*.csv", shell=True, cwd=path_chunk).wait()
 
@@ -100,11 +100,11 @@ def build_dataset():
                         obj = DatasetAnalyzer(pathCSV) 
                         obj.read_CSV()
 
-                        for length in [18, 35, 70, 140, 280, 350]: # for 0.5, 1, 2, 4, 8, 10 seconds
+                        for length in [18, 35, 70, 140, 280, 350]:  # corresponding to 0.5, 1, 2, 4, 8, 10 seconds
                             obj = DatasetAnalyzer(pathCSV, smooth=True, windowLength=length)
                             obj.read_CSV()
                             
-                        break   # To avoid processing the 500-600 kbps csv files.    
+                        break   # To avoid processing the "_500/600kbps" csv files.
                     j += 1
                 
 
