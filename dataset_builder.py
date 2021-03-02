@@ -4,18 +4,9 @@ import csv
 import subprocess
 import numpy as np
 from PIL import Image
-from itertools import product
 from dataset_analyzer import DatasetAnalyzer
 
 FPS = 35
-
-class SceneLabels():
-    EXPLORATION = 0
-    COMBAT      = 1
-    MENU        = 2
-    CONSOLE     = 3
-    SCOREBOARD  = 4
-    CUTSCENE    = 5
 
 def build_dataset():
 
@@ -27,7 +18,7 @@ def build_dataset():
 
         path_exp = "./experiment/map_id_%i" % id_map
         
-        while os.path.exists(path_exp):
+        if os.path.exists(path_exp):
             
             experiments = os.listdir(path_exp)
             
@@ -63,14 +54,14 @@ def build_dataset():
                     subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 400k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
                     subprocess.Popen("plotbitrate -f csv_raw -o raw_400kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
                     print("%s has been recorded!" % videoName)
-                    videoName = "chunk%i_500kbps.mp4" % j
-                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 500k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
-                    subprocess.Popen("plotbitrate -f csv_raw -o raw_500kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
-                    print("%s has been recorded!" % videoName)
-                    videoName = "chunk%i_600kbps.mp4" % j
-                    subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 600k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
-                    subprocess.Popen("plotbitrate -f csv_raw -o raw_600kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
-                    print("%s has been recorded!" % videoName)
+                    # videoName = "chunk%i_500kbps.mp4" % j
+                    # subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 500k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
+                    # subprocess.Popen("plotbitrate -f csv_raw -o raw_500kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
+                    # print("%s has been recorded!" % videoName)
+                    # videoName = "chunk%i_600kbps.mp4" % j
+                    # subprocess.Popen("ffmpeg -r %i -f image2 -i %s -vcodec libx264 -b:v 600k -loglevel quiet %s" % (FPS, "frame%05d.png", videoName), shell=True, cwd=path_chunk).wait()
+                    # subprocess.Popen("plotbitrate -f csv_raw -o raw_600kbps.csv %s" % videoName, shell=True, cwd=path_chunk).wait()
+                    # print("%s has been recorded!" % videoName)
 
                     print("Frames inside [%s] are being destroyed..." % path_chunk)
                     subprocess.Popen("rm -f *.png", shell=True, cwd=path_chunk).wait()
@@ -97,6 +88,8 @@ def build_dataset():
                                 rows.append(row)
 
                             csvWriter.writerows(rows)
+
+                            break # To avoid processing the 500-600 kbps csv files. 
                     
                     subprocess.Popen("rm -f raw*.csv", shell=True, cwd=path_chunk).wait()
 
@@ -107,13 +100,13 @@ def build_dataset():
                         obj = DatasetAnalyzer(pathCSV) 
                         obj.read_CSV()
 
-                        for length in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-                            obj = DatasetAnalyzer(pathCSV, smooth="exp", windowLength=length)
+                        for length in [18, 35, 70, 140, 280, 350]: # for 0.5, 1, 2, 4, 8, 10 seconds
+                            obj = DatasetAnalyzer(pathCSV, smooth=True, windowLength=length)
                             obj.read_CSV()
-                    
+                            
+                        break   # To avoid processing the 500-600 kbps csv files.    
                     j += 1
-
-            break
+                
 
 if __name__ == "__main__":
 
