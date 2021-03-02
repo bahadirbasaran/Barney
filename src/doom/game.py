@@ -6,6 +6,7 @@ from logging import getLogger
 from collections import namedtuple
 from datetime import datetime
 import numpy as np
+from enum import IntEnum
 
 # ViZDoom library
 from vizdoom import DoomGame, GameVariable
@@ -86,13 +87,13 @@ GameState = namedtuple('State', ['screen', 'variables', 'features'])
 # logger
 logger = getLogger()
 
-class SceneLabels():
+class GameStage(IntEnum):
     EXPLORATION = 0
     COMBAT      = 1
     MENU        = 2
     CONSOLE     = 3
     SCOREBOARD  = 4
-    CUTSCENE    = 5
+    DEATH       = 5
 
 class Game(object):
 
@@ -683,72 +684,77 @@ class Game(object):
                 for _ in range(frame_skip):             
 
                     self.game.make_action(action)
+                    self.update_buffers()
 
                     if self.generate_dataset:
 
-                        sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[1000, 1, 1, 1])[0]
-
-                        if sceneSelection == "action":
-
-                            sceneLabel = SceneLabels.EXPLORATION
-
-                            self.update_buffers()
-
-                            for label in self._labels:
-                                if get_label_type_id(label) == 0:
-                                    sceneLabel = SceneLabels.COMBAT
-                                    break
-
+                        if self.is_player_dead():
                             i = len(frames)
                             frames['frame%i' % i] = self._screen_buffer
-                            labels['label%i' % i] = sceneLabel
+                            labels['label%i' % i] = GameStage.DEATH
 
-                        elif sceneSelection == "console":
+                        else:
+                            sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[1000, 1, 1, 1])[0]
 
-                            self.game.send_game_command("toggleconsole")
-                            self.game.advance_action(20)           
-                            self.update_buffers()
-                            time.sleep(3)
-                            
-                            for _ in range(random.choice([140, 175, 210])):
+                            if sceneSelection == "action":
+
+                                sceneLabel = GameStage.EXPLORATION
+
+                                for label in self._labels:
+                                    if get_label_type_id(label) == 0:
+                                        sceneLabel = GameStage.COMBAT
+                                        break
+
                                 i = len(frames)
                                 frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = SceneLabels.CONSOLE
+                                labels['label%i' % i] = sceneLabel
+
+                            elif sceneSelection == "console":
+
+                                self.game.send_game_command("toggleconsole")
+                                self.game.advance_action(20)           
+                                self.update_buffers()
+                                time.sleep(3)
+                                
+                                for _ in range(random.choice(range(70, 211))):
+                                    i = len(frames)
+                                    frames['frame%i' % i] = self._screen_buffer
+                                    labels['label%i' % i] = GameStage.CONSOLE
+                                
+                                self.game.send_game_command("menu_main")
+                                self.game.send_game_command("closemenu")
+                                self.game.advance_action(20)
                             
-                            self.game.send_game_command("menu_main")
-                            self.game.send_game_command("closemenu")
-                            self.game.advance_action(20)
-                        
-                        elif sceneSelection == "menu":
+                            elif sceneSelection == "menu":
 
-                            self.game.send_game_command("menu_main")
-                            self.game.advance_action(20)           
-                            self.update_buffers()
-                            time.sleep(3)            
+                                self.game.send_game_command("menu_main")
+                                self.game.advance_action(20)           
+                                self.update_buffers()
+                                time.sleep(3)            
 
-                            for _ in range(random.choice([140, 175, 210])):
-                                i = len(frames)
-                                frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = SceneLabels.MENU
+                                for _ in range(random.choice(range(70, 211))):
+                                    i = len(frames)
+                                    frames['frame%i' % i] = self._screen_buffer
+                                    labels['label%i' % i] = GameStage.MENU
 
-                            self.game.send_game_command("closemenu")
-                            self.game.advance_action(20)
+                                self.game.send_game_command("closemenu")
+                                self.game.advance_action(20)
 
-                        elif sceneSelection == "scoreboard":
+                            elif sceneSelection == "scoreboard":
 
-                            self.game.send_game_command("+showscores")
-                            self.game.advance_action(20)           
-                            self.update_buffers()             
-                            time.sleep(3)
+                                self.game.send_game_command("+showscores")
+                                self.game.advance_action(20)           
+                                self.update_buffers()             
+                                time.sleep(3)
 
-                            for _ in range(random.choice([140, 175, 210])):
-                                i = len(frames)
-                                frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = SceneLabels.SCOREBOARD
-                            
-                            self.game.send_game_command("menu_main")
-                            self.game.send_game_command("closemenu")
-                            self.game.advance_action(20)
+                                for _ in range(random.choice(range(70, 211))):
+                                    i = len(frames)
+                                    frames['frame%i' % i] = self._screen_buffer
+                                    labels['label%i' % i] = GameStage.SCOREBOARD
+                                
+                                self.game.send_game_command("menu_main")
+                                self.game.send_game_command("closemenu")
+                                self.game.advance_action(20)
 
                     # death or episode finished
                     if self.is_player_dead() or self.is_episode_finished():
@@ -764,15 +770,11 @@ class Game(object):
                 self.game.make_action(action, frame_skip)
         
 
-        if self.generate_dataset:
-            self.update_game_variables()
-            self.update_statistics_and_reward(action)
-            return frames, labels
+        self.update_game_variables()
+        self.update_statistics_and_reward(action)
         
-        else:
-            self.update_buffers()
-            self.update_game_variables()
-            self.update_statistics_and_reward(action)
+        if self.generate_dataset:  
+            return frames, labels
             
     @property
     def reward(self):
