@@ -7,6 +7,7 @@ from PIL import Image
 from dataset_analyzer import DatasetAnalyzer
 
 FPS = 35
+NUM_MAPS = 32
 
 def build_dataset():
 
@@ -14,7 +15,7 @@ def build_dataset():
         print("There is no experiment to be used to generate a dataset!")
         return
     
-    for id_map in range(1,33):       # for each existing one of 32 maps
+    for id_map in range(1, NUM_MAPS):       
 
         path_exp = "./experiment/map_id_%i" % id_map
         
@@ -81,11 +82,31 @@ def build_dataset():
                             header.append("gamestage")
                             rows.append(header)
 
-                            for n, row in enumerate(csvReader):
-                                #append the game stage
-                                stage = int(data.get('label%i' % n))
+                            for index, row in enumerate(csvReader):
+                                stage = int(data.get('label%i' % index))    #append the game stage
                                 row.append(stage)
                                 rows.append(row)
+
+                            """ Eliminate outlier rows e.g. (111011) """
+                            outlierRows = []
+                            for index, row in enumerate(rows):
+                                if index == 0:
+                                    firstStage = row[3]
+                                    continue
+
+                                # Stage change
+                                if row[3] != firstStage:
+                                    try:
+                                        if row[3] != rows[index+1][3]:
+                                            outlierRows.append(index)
+                                            firstStage = rows[index+1][3]
+                                        else:
+                                            firstStage = row[3]
+                                    except IndexError:
+                                            outlierRows.append(index)
+
+                            outlierRows = [rows[index][0] for index in outlierRows]
+                            rows        = [row for row in rows if row[0] not in outlierRows]
 
                             csvWriter.writerows(rows)
 
@@ -99,12 +120,13 @@ def build_dataset():
                         
                         obj = DatasetAnalyzer(pathCSV) 
                         obj.read_CSV()
-
-                        for length in [18, 35, 70, 140, 280, 350]:  # corresponding to 0.5, 1, 2, 4, 8, 10 seconds
+                        
+                        for length in [18, 35, 70, 140]:  # corresponding to 0.5, 1, 2, 4 seconds
                             obj = DatasetAnalyzer(pathCSV, smooth=True, windowLength=length)
                             obj.read_CSV()
                             
                         break   # To avoid processing the "_500/600kbps" csv files.
+                    
                     j += 1
                 
 

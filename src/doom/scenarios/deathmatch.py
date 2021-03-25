@@ -168,17 +168,16 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
 
         n_iter = 0
         last_states = []
-
+        
         while n_iter * params.frame_skip < params.eval_time * 35:
             n_iter += 1
-
-            if game.is_player_dead():
+    
+            if game.is_player_dead():         
                 game.respawn_player()
                 network.reset()
 
             while game.is_player_dead():
-                logger.warning('Player %i is still dead after respawn.' %
-                               params.player_rank)
+                logger.warning('Player %i is still dead after respawn.' % params.player_rank)
                 game.respawn_player()
 
             # observe the game state / select the next action
@@ -202,7 +201,7 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
                 dictFrames, dictLabels = game.make_action(action, params.frame_skip, sleep=sleep, frames=dictFrames, labels=dictLabels)
 
                 n_action += 1
-                if n_action == 3000:
+                if n_action == 7500:        #2500
                     print("\nRECORDING ----> Chunk%i" % idChunk)
                     np.savez_compressed(os.path.join(pathDataset, 'chunk%i') % idChunk, **dictFrames, **dictLabels)
                     print("\nChunk%i ----> RECORDED!\n" % idChunk)
