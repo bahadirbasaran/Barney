@@ -143,7 +143,7 @@ class Trainer(object):
             self.best_score = new_score
             logger.info('New best score: %f' % self.best_score)
             model_name = 'best-%i.pth' % (self.n_iter - start_iter)
-            model_path = os.path.join(self.params.dump_path, model_name)
+            model_path = os.path.join(self.params.experiment_path, model_name)
             logger.info('Best model dump: %s' % model_path)
             torch.save(self.network.module.state_dict(), model_path)
         self.network.module.train()
@@ -151,7 +151,7 @@ class Trainer(object):
 
     def dump_model(self, start_iter):
         model_name = 'periodic-%i.pth' % (self.n_iter - start_iter)
-        model_path = os.path.join(self.params.dump_path, model_name)
+        model_path = os.path.join(self.params.experiment_path, model_name)
         logger.info('Periodic dump: %s' % model_path)
         torch.save(self.network.module.state_dict(), model_path)
 

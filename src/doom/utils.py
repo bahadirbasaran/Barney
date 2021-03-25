@@ -85,7 +85,7 @@ def process_buffers(game, params):
             if type_id is not None:
                 _mapping[label.value] = type_id + 1
         # -x is faster than x * 255 and is equivalent for uint8
-        __labels_buffer = -(_mapping[labels_buffer] ==
+        __labels_buffer = -(_mapping[labels_buffer] == 
                             np.arange(1, 5)[:, None, None]).astype(np.uint8)
 
         # evaluate game features based on labels buffer

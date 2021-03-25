@@ -7,6 +7,7 @@ import argparse
 import subprocess
 import torch
 from torch import optim
+from datetime import datetime
 
 
 FALSY_STRINGS = {'off', 'false', '0'}
@@ -99,28 +100,29 @@ def get_optimizer(s):
     return optim_fn, optim_params
 
 
-def get_dump_path(main_dump_path, exp_name):
+def get_experiment_path(main_experiment_path, exp_name):
     """
     Create a directory to store the experiment.
     """
     assert len(exp_name) > 0
     # create the sweep path if it does not exist
-    if not os.path.isdir(main_dump_path):
-        subprocess.Popen("mkdir %s" % main_dump_path, shell=True).wait()
-    sweep_path = os.path.join(main_dump_path, exp_name)
+    if not os.path.isdir(main_experiment_path):
+        subprocess.Popen("mkdir %s" % main_experiment_path, shell=True).wait()
+    sweep_path = os.path.join(main_experiment_path, exp_name)
     if not os.path.exists(sweep_path):
         subprocess.Popen("mkdir %s" % sweep_path, shell=True).wait()
     # randomly generate a experiment ID
-    chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    #chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
     while True:
-        folder_name = ''.join(random.choice(chars) for _ in range(10))
-        dump_path = os.path.join(sweep_path, folder_name)
-        if not os.path.isdir(dump_path):
+        #folder_name = ''.join(random.choice(chars) for _ in range(10))
+        folder_name = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+        experiment_path = os.path.join(sweep_path, folder_name)
+        if not os.path.isdir(experiment_path):
             break
-    # create the dump folder
-    if not os.path.isdir(dump_path):
-        subprocess.Popen("mkdir %s" % dump_path, shell=True).wait()
-    return dump_path
+    # create the experiment folder
+    if not os.path.isdir(experiment_path):
+        subprocess.Popen("mkdir %s" % experiment_path, shell=True).wait()
+    return experiment_path
 
 
 def set_num_threads(n):

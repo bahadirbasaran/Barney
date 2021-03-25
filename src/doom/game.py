@@ -1,8 +1,12 @@
 import os
 import time
 import math
+import random
 from logging import getLogger
 from collections import namedtuple
+from datetime import datetime
+import numpy as np
+from enum import IntEnum
 
 # ViZDoom library
 from vizdoom import DoomGame, GameVariable
@@ -12,7 +16,7 @@ from vizdoom import ScreenResolution, ScreenFormat, Mode
 from .utils import process_buffers
 from .reward import RewardBuilder
 from .actions import add_buttons
-from .labels import parse_labels_mapping
+from .labels import parse_labels_mapping, get_label_type_id
 from .game_features import parse_game_features
 
 
@@ -83,6 +87,12 @@ GameState = namedtuple('State', ['screen', 'variables', 'features'])
 # logger
 logger = getLogger()
 
+class GameStage(IntEnum):
+    EXPLORATION = 0
+    COMBAT      = 1
+    MENU        = 2
+    CONSOLE     = 3
+    SCOREBOARD  = 4
 
 class Game(object):
 
@@ -96,6 +106,7 @@ class Game(object):
         screen_resolution='RES_400X225',
         screen_format='CRCGCB',
         use_screen_buffer=True,
+        generate_dataset=False,
         use_depth_buffer=False,
         labels_mapping='',
         game_features='',
@@ -159,6 +170,7 @@ class Game(object):
         self.screen_resolution = screen_resolution
         self.screen_format = screen_format
         self.use_screen_buffer = use_screen_buffer
+        self.generate_dataset = generate_dataset
         self.use_depth_buffer = use_depth_buffer
         self.labels_mapping = parse_labels_mapping(labels_mapping)
         self.game_features = parse_game_features(game_features)
@@ -438,8 +450,7 @@ class Game(object):
         self.game.set_screen_resolution(screen_resolution)
         self.game.set_screen_format(getattr(ScreenFormat, self.screen_format))
         self.game.set_depth_buffer_enabled(self.use_depth_buffer)
-        self.game.set_labels_buffer_enabled(self.use_labels_buffer or
-                                            self.use_game_features)
+        self.game.set_labels_buffer_enabled(self.use_labels_buffer or self.use_game_features)
         self.game.set_mode(getattr(Mode, self.mode))
 
         # rendering options
@@ -472,7 +483,7 @@ class Game(object):
         # enable the cheat system (so that we can still
         # send commands to the game in self-play mode)
         args.append('+sv_cheats 1')
-
+        
         # load parameters
         self.args = args
         for arg in args:
@@ -492,6 +503,9 @@ class Game(object):
 
         # initialize the game after player spawns
         self.initialize_game()
+
+        # Activate the god mode to avoid noise in dataset caused by respawning 
+        self.game.send_game_command("iddqd")
 
     def reset(self):
         """
@@ -515,8 +529,7 @@ class Game(object):
 
         # deal with a ViZDoom issue
         while self.is_player_dead():
-            logger.warning('Player %i is still dead after respawn.' %
-                           self.params.player_rank)
+            logger.warning('Player %i is still dead after respawn.' % self.params.player_rank)
             self.respawn_player()
 
     def update_bots(self):
@@ -572,18 +585,24 @@ class Game(object):
         self.log('Respawn player')
         self.initialize_game()
 
+    def update_buffers(self):
+        '''
+        Get the current game state and update the buffers
+        '''
+        game_state = self.game.get_state()
+        if game_state is not None:
+            self._screen_buffer = game_state.screen_buffer
+            self._depth_buffer  = game_state.depth_buffer
+            self._labels_buffer = game_state.labels_buffer
+            self._labels        = game_state.labels
+    
     def initialize_game(self):
         """
         Initialize the game after the player spawns / respawns.
         Be sure that properties from the previous
         life are not considered in this one.
         """
-        # generate buffers
-        game_state = self.game.get_state()
-        self._screen_buffer = game_state.screen_buffer
-        self._depth_buffer = game_state.depth_buffer
-        self._labels_buffer = game_state.labels_buffer
-        self._labels = game_state.labels
+        self.update_buffers()
 
         # actor properties
         self.prev_properties = None
@@ -613,14 +632,14 @@ class Game(object):
         assert 0 < health <= 100
         self.game.send_game_command("pukename set_value always 5 %i" % health)
 
-    def make_action(self, action, frame_skip=1, sleep=None):
+    def make_action(self, action, frame_skip=1, sleep=None, frames=None, labels=None):
         """
         Make an action.
         If `sleep` is given, the network will wait
         `sleep` seconds between each action.
         """
         assert frame_skip >= 1
-
+      
         # convert selected action to the ViZDoom action format
         action = self.action_builder.get_action(action)
 
@@ -664,8 +683,75 @@ class Game(object):
                 for _ in range(manual_repeat):
                     self.game.make_action(manual_action)
             else:
-                for _ in range(frame_skip):
+                for _ in range(frame_skip):             
+
                     self.game.make_action(action)
+                    self.update_buffers()
+
+                    if self.generate_dataset:
+
+                        sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[1000, 1, 1, 1])[0]
+
+                        if sceneSelection == "action":
+
+                            sceneLabel = GameStage.EXPLORATION
+
+                            for label in self._labels:
+                                if get_label_type_id(label) == 0:
+                                    sceneLabel = GameStage.COMBAT
+                                    break
+
+                            i = len(frames)
+                            frames['frame%i' % i] = self._screen_buffer
+                            labels['label%i' % i] = sceneLabel
+
+                        elif sceneSelection == "console":
+
+                            self.game.send_game_command("toggleconsole")
+                            self.game.advance_action(20)           
+                            self.update_buffers()
+                            time.sleep(3)
+                            
+                            for _ in range(random.choice(range(70, 211))):
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = GameStage.CONSOLE
+                            
+                            self.game.send_game_command("menu_main")
+                            self.game.send_game_command("closemenu")
+                            self.game.advance_action(20)
+                        
+                        elif sceneSelection == "menu":
+
+                            self.game.send_game_command("menu_main")
+                            self.game.advance_action(20)           
+                            self.update_buffers()
+                            time.sleep(3)            
+
+                            for _ in range(random.choice(range(70, 211))):
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = GameStage.MENU
+
+                            self.game.send_game_command("closemenu")
+                            self.game.advance_action(20)
+
+                        elif sceneSelection == "scoreboard":
+
+                            self.game.send_game_command("+showscores")
+                            self.game.advance_action(20)           
+                            self.update_buffers()             
+                            time.sleep(3)
+
+                            for _ in range(random.choice(range(70, 211))):
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = GameStage.SCOREBOARD
+                            
+                            self.game.send_game_command("menu_main")
+                            self.game.send_game_command("closemenu")
+                            self.game.advance_action(20)
+
                     # death or episode finished
                     if self.is_player_dead() or self.is_episode_finished():
                         break
@@ -678,19 +764,14 @@ class Game(object):
                 self.game.make_action(manual_action, manual_repeat)
             else:
                 self.game.make_action(action, frame_skip)
+        
 
-        # generate buffers
-        game_state = self.game.get_state()
-        if game_state is not None:
-            self._screen_buffer = game_state.screen_buffer
-            self._depth_buffer = game_state.depth_buffer
-            self._labels_buffer = game_state.labels_buffer
-            self._labels = game_state.labels
-
-        # update game variables / statistics rewards
         self.update_game_variables()
         self.update_statistics_and_reward(action)
-
+        
+        if self.generate_dataset:  
+            return frames, labels
+            
     @property
     def reward(self):
         """

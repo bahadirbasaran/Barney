@@ -26,6 +26,11 @@ case $key in
     shift
     shift
     ;;
+    -d|--generate_dataset)
+    D="$2"
+    shift
+    shift
+    ;;
     --default)
     DEFAULT=YES
     shift
@@ -50,20 +55,23 @@ fi
 if [ "$H" == "" ]; then
 	H=0
 fi
+if [ "$D" == "" ]; then
+	D=0
+fi
 
 P=$((A+H))
 
 if [ "$1" == "defend_the_center" ]; then
-python3 barney.py --exp_name test --main_dump_path $PWD/dumped \
+python3 barney.py --exp_name defend_the_center --main_experiment_path $PWD/experiment \
 --scenario defend_the_center --frame_skip 2 --action_combinations "turn_lr+attack" \
---reload $PWD/pretrained/defend_the_center.pth --evaluate 1 --visualize 1 --gpu_id -1
+--reload $PWD/pretrained/defend_the_center.pth --evaluate 1 --visualize 1 --gpu_id -1 --generate_dataset ${D}
 fi
 
 if [ "$1" == "health_gathering" ]; then
-python3 barney.py --exp_name test --main_dump_path $PWD/dumped \
+python3 barney.py --exp_name health_gathering --main_experiment_path $PWD/experiment \
 --scenario health_gathering --supreme 1 \
 --frame_skip 4 --action_combinations "move_fb;turn_lr" \
---reload $PWD/pretrained/health_gathering.pth --evaluate 1 --visualize 1 --gpu_id -1
+--reload $PWD/pretrained/health_gathering.pth --evaluate 1 --visualize 1 --gpu_id -1 --generate_dataset ${D}
 fi
 
 if [ "$1" == "track1" ]; then
@@ -71,14 +79,14 @@ echo "Number of agents: ${A}"
 echo "Number of bots  : ${B}"
 echo "Map ID          : 1"
 echo "Human player    : ${H}"
-python3 barney.py --exp_name test --main_dump_path $PWD/dumped \
+python3 barney.py --exp_name map_id_1 --main_experiment_path $PWD/experiment \
 --frame_skip 3 --action_combinations "attack+move_lr;turn_lr;move_fb" \
 --network_type "dqn_rnn" --recurrence "lstm" --n_rec_layers 1 --hist_size 4 --remember 1 \
 --labels_mapping "" --game_features "target,enemy" --bucket_size "[10, 1]" --dropout 0.5 \
 --speed "on" --crouch "off" --map_ids_test 1 --manual_control 1 \
 --scenario "self_play" --execute "deathmatch" --wad "deathmatch_rockets" \
 --num_players ${P} --n_bots ${B} --human_player ${H} \
---reload $PWD/pretrained/vizdoom_2017_track1.pth --evaluate 1 --visualize 1 --gpu_id -1
+--reload $PWD/pretrained/vizdoom_2017_track1.pth --evaluate 1 --visualize 1 --gpu_id -1 --generate_dataset ${D}
 fi
 
 if [ "$1" == "track2" ]; then
@@ -86,27 +94,31 @@ echo "Number of agents: ${A}"
 echo "Number of bots  : ${B}"
 echo "Map ID          : ${M}"
 echo "Human player    : ${H}"
-python3 barney.py --exp_name test --main_dump_path $PWD/dumped \
+python3 barney.py --exp_name map_id_${M} --main_experiment_path $PWD/experiment \
 --frame_skip 4 --action_combinations "move_fb+move_lr;turn_lr;attack" \
 --network_type "dqn_rnn" --recurrence "lstm" --n_rec_layers 1 --hist_size 4 --remember 1 \
 --labels_mapping "" --game_features "target,enemy" --bucket_size "[10, 1]" --dropout 0.5 \
 --speed "on" --crouch "off" --map_ids_test ${M} --manual_control 1 \
 --scenario "self_play" --execute "deathmatch" --wad "full_deathmatch" \
 --num_players ${P} --n_bots ${B} --human_player ${H} \
---reload $PWD/pretrained/vizdoom_2017_track2.pth --evaluate 1 --visualize 1 --gpu_id -1
- fi
+--reload $PWD/pretrained/vizdoom_2017_track2.pth --evaluate 1 --visualize 1 --gpu_id -1 --generate_dataset ${D}
+fi
 
 if [ "$1" == "shotgun" ]; then
 echo "Number of agents: ${A}"
 echo "Number of bots  : ${B}"
 echo "Map ID          : 7"
 echo "Human player    : ${H}"
-python3 barney.py --exp_name test --main_dump_path . \
+python3 barney.py --exp_name map_id_7 --main_experiment_path $PWD/experiment \
 --frame_skip 3 --action_combinations "move_fb+move_lr;turn_lr;attack" \
 --network_type "dqn_rnn" --recurrence "lstm" --n_rec_layers 1 --hist_size 6 --remember 1 \
 --labels_mapping "0" --game_features "target,enemy" --bucket_size "[10, 1]" --dropout 0.5 \
 --speed "on" --crouch "off" --map_ids_test 7 --manual_control 1 \
 --scenario "self_play" --execute "deathmatch" --wad "deathmatch_shotgun" \
 --num_players ${P} --n_bots ${B} --human_player ${H} \
---reload $PWD/pretrained/deathmatch_shotgun.pth --evaluate 1 --visualize 1 --gpu_id -1
+--reload $PWD/pretrained/deathmatch_shotgun.pth --evaluate 1 --visualize 1 --gpu_id -1 --generate_dataset ${D}
+fi
+
+if [ "$1" == "dataset_builder" ]; then
+python3 dataset_builder.py
 fi

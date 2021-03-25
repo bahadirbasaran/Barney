@@ -42,7 +42,7 @@ def main(parser, args, parameter_server=None):
     params.eval_episodes = 20  # number of episodes for evaluation
 
     # log experiment parameters
-    with open(os.path.join(params.dump_path, 'params.pkl'), 'wb') as f:
+    with open(os.path.join(params.experiment_path, 'params.pkl'), 'wb') as f:
         pickle.dump(params, f)
     logger.info('\n'.join('%s: %s' % (k, str(v))
                           for k, v in dict(vars(params)).items()))
@@ -67,6 +67,7 @@ def main(parser, args, parameter_server=None):
         score_variable='USER1',
         freedoom=params.freedoom,
         use_screen_buffer=params.use_screen_buffer,
+        generate_dataset=params.generate_dataset,
         use_depth_buffer=params.use_depth_buffer,
         labels_mapping=params.labels_mapping,
         game_features=params.game_features,
@@ -85,7 +86,7 @@ def main(parser, args, parameter_server=None):
     network = get_model_class(params.network_type)(params)
     if params.reload:
         logger.info('Reloading model from %s...' % params.reload)
-        model_path = os.path.join(params.dump_path, params.reload)
+        model_path = os.path.join(params.experiment_path, params.reload)
         map_location = get_device_mapping(params.gpu_id)
         reloaded = torch.load(model_path, map_location=map_location)
         network.module.load_state_dict(reloaded)
