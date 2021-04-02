@@ -66,8 +66,8 @@ def main(parser, args, parameter_server=None):
     # Training / Evaluation parameters
     params.episode_time = None  # episode maximum duration (in seconds)
     params.eval_freq = 20000    # time (in iterations) between 2 evaluations
-    params.eval_time = 900      # evaluation time (in seconds)
-
+    params.eval_time = 7200     # evaluation time (in seconds)
+    
     # log experiment parameters
     with open(os.path.join(params.experiment_path, 'params.pkl'), 'wb') as f:
         pickle.dump(params, f)
@@ -149,7 +149,8 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
         dictFrames = {}
         dictLabels = {}
         idChunk = 0
-        n_action = 0
+        nAction = 0
+        currentIndice = 0
     
     n_features = params.n_features
     if n_features > 0:
@@ -198,16 +199,16 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
 
             if params.generate_dataset:
                 
-                dictFrames, dictLabels = game.make_action(action, params.frame_skip, sleep=sleep, frames=dictFrames, labels=dictLabels)
+                currentIndice, dictFrames, dictLabels = game.make_action(action, currentIndice, params.frame_skip, sleep=sleep, frames=dictFrames, labels=dictLabels)
 
-                n_action += 1
-                if n_action == 7500:        #2500
+                nAction += 1
+                if nAction == 2100:     # Chunks of 3 mins long        
                     print("\nRECORDING ----> Chunk%i" % idChunk)
                     np.savez_compressed(os.path.join(pathDataset, 'chunk%i') % idChunk, **dictFrames, **dictLabels)
                     print("\nChunk%i ----> RECORDED!\n" % idChunk)
                     logger.info("\nChunk%i ----> RECORDED\n" % idChunk)
                     idChunk += 1
-                    n_action = 0
+                    nAction = 0
                     dictFrames.clear()
                     dictLabels.clear()
             else: 
@@ -215,6 +216,9 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
         
         # close the game
         game.close()
+
+    # if there is unfinished recording after while loop terminates
+    np.savez_compressed(os.path.join(pathDataset, 'chunk%i') % idChunk, **dictFrames, **dictLabels)
 
     # log the number of iterations and statistics
     logger.info("%i iterations" % n_iter)

@@ -632,7 +632,7 @@ class Game(object):
         assert 0 < health <= 100
         self.game.send_game_command("pukename set_value always 5 %i" % health)
 
-    def make_action(self, action, frame_skip=1, sleep=None, frames=None, labels=None):
+    def make_action(self, action, currentIndice, frame_skip=1, sleep=None, frames=None, labels=None):
         """
         Make an action.
         If `sleep` is given, the network will wait
@@ -701,9 +701,9 @@ class Game(object):
                                     sceneLabel = GameStage.COMBAT
                                     break
 
-                            i = len(frames)
-                            frames['frame%i' % i] = self._screen_buffer
-                            labels['label%i' % i] = sceneLabel
+                            frames['frame%i' % currentIndice] = self._screen_buffer
+                            labels['label%i' % currentIndice] = sceneLabel
+                            currentIndice += 1
 
                         elif sceneSelection == "console":
 
@@ -713,9 +713,9 @@ class Game(object):
                             time.sleep(3)
                             
                             for _ in range(random.choice(range(70, 211))):
-                                i = len(frames)
-                                frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = GameStage.CONSOLE
+                                frames['frame%i' % currentIndice] = self._screen_buffer
+                                labels['label%i' % currentIndice] = GameStage.CONSOLE
+                                currentIndice += 1
                             
                             self.game.send_game_command("menu_main")
                             self.game.send_game_command("closemenu")
@@ -729,9 +729,9 @@ class Game(object):
                             time.sleep(3)            
 
                             for _ in range(random.choice(range(70, 211))):
-                                i = len(frames)
-                                frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = GameStage.MENU
+                                frames['frame%i' % currentIndice] = self._screen_buffer
+                                labels['label%i' % currentIndice] = GameStage.MENU
+                                currentIndice += 1
 
                             self.game.send_game_command("closemenu")
                             self.game.advance_action(20)
@@ -744,9 +744,9 @@ class Game(object):
                             time.sleep(3)
 
                             for _ in range(random.choice(range(70, 211))):
-                                i = len(frames)
-                                frames['frame%i' % i] = self._screen_buffer
-                                labels['label%i' % i] = GameStage.SCOREBOARD
+                                frames['frame%i' % currentIndice] = self._screen_buffer
+                                labels['label%i' % currentIndice] = GameStage.SCOREBOARD
+                                currentIndice += 1
                             
                             self.game.send_game_command("menu_main")
                             self.game.send_game_command("closemenu")
@@ -770,7 +770,7 @@ class Game(object):
         self.update_statistics_and_reward(action)
         
         if self.generate_dataset:  
-            return frames, labels
+            return currentIndice, frames, labels
             
     @property
     def reward(self):
