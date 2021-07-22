@@ -1,9 +1,9 @@
 import csv
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from copy import deepcopy
 from enum import IntEnum
+import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set(rc={'figure.figsize': (18, 6)})
 sns.set_theme()
@@ -41,6 +41,7 @@ class DatasetAnalyzer():
         self.videoData   = {}
         self.kbpsOverall = 0
         self.avgStageBitrates = {}
+        self.bitrateVariances = {}
 
         self.read_CSV()
 
@@ -54,7 +55,8 @@ class DatasetAnalyzer():
         if self.smooth:
             # ONLY FOR AN EXPERIMENT WITHOUT SYNTHETIC SCREENS
             self.dfInput['gamestageEMA']  = self.dfInput['gamestage'].ewm(span=self.windowLength, adjust=False).mean()
-            for i in range(self.dfInput.shape[0]):  self.dfInput.loc[i, 'gamestageEMA'] = 1 if self.dfInput.loc[i, 'gamestageEMA'] > 0.5 else 0
+            for i in range(self.dfInput.shape[0]):  
+                self.dfInput.loc[i, 'gamestageEMA'] = 1 if self.dfInput.loc[i, 'gamestageEMA'] > 0.5 else 0
 
             self.dfInput['bitrateKbpsEMA']  = self.dfInput['bitrateKbps'].ewm(span=self.windowLength, adjust=False).mean()
             self.kbpsOverall = round(self.dfInput['bitrateKbpsEMA'].mean(), 2)
@@ -117,45 +119,45 @@ class DatasetAnalyzer():
         df_console     = self.dfInput[(self.dfInput[columnStage] == GameStage.CONSOLE)]
         df_scoreboard  = self.dfInput[(self.dfInput[columnStage] == GameStage.SCOREBOARD)]
 
-        min_exploration   = round(df_exploration['size'].min() * 8 / 1000, 5)
-        max_exploration   = df_exploration['size'].max() * 8 // 1000
+        min_exploration   = df_exploration['size'].min()
+        max_exploration   = df_exploration['size'].max()
         cv_exploration    = round((df_exploration['size'].std() / df_exploration['size'].mean()), 2)
-        mean_exploration  = round(df_exploration['size'].mean() * 8 / 1000, 2)
+        mean_exploration  = round(df_exploration['size'].mean(), 2)
         count_exploration = df_exploration.shape[0]
         dom_exploration   = round(count_exploration * 100 / count_total, 2)
 
-        min_combat   = round(df_combat['size'].min() * 8 / 1000, 5)
-        max_combat   = df_combat['size'].max() * 8 // 1000
+        min_combat   = df_combat['size'].min()
+        max_combat   = df_combat['size'].max()
         cv_combat    = round((df_combat['size'].std() / df_combat['size'].mean()), 2)
-        mean_combat  = round(df_combat['size'].mean() * 8 / 1000, 2)
+        mean_combat  = round(df_combat['size'].mean(), 2)
         count_combat = df_combat.shape[0]
         dom_combat   = round(count_combat * 100 / count_total , 2)
 
-        min_menu     = round(df_menu['size'].min() * 8 / 1000, 5)
-        max_menu     = df_menu['size'].max() * 8 // 1000
+        min_menu     = df_menu['size'].min()
+        max_menu     = df_menu['size'].max()
         cv_menu      = round((df_menu['size'].std() / df_menu['size'].mean()), 2)
-        mean_menu    = round(df_menu['size'].mean() * 8 / 1000, 2)
+        mean_menu    = round(df_menu['size'].mean(), 2)
         count_menu   = df_menu.shape[0]
         dom_menu     = round(count_menu * 100 / count_total , 2)
 
-        min_console   = round(df_console['size'].min() * 8 / 1000, 5)
-        max_console   = df_console['size'].max() * 8 // 1000
+        min_console   = df_console['size'].min()
+        max_console   = df_console['size'].max()
         cv_console    = round((df_console['size'].std() / df_console['size'].mean()), 2)
-        mean_console  = round(df_console['size'].mean() * 8 / 1000, 2)
+        mean_console  = round(df_console['size'].mean(), 2)
         count_console = df_console.shape[0]
         dom_console   = round(count_console * 100 / count_total , 2)
         
-        min_scoreboard   = round(df_scoreboard['size'].min() * 8 / 1000, 5)
-        max_scoreboard   = df_scoreboard['size'].max() * 8 // 1000
+        min_scoreboard   = df_scoreboard['size'].min()
+        max_scoreboard   = df_scoreboard['size'].max()
         cv_scoreboard    = round((df_scoreboard['size'].std() / df_scoreboard['size'].mean()), 2)
-        mean_scoreboard  = round(df_scoreboard['size'].mean() * 8 / 1000, 2)
+        mean_scoreboard  = round(df_scoreboard['size'].mean(), 2)
         count_scoreboard = df_scoreboard.shape[0]
         dom_scoreboard   = round(count_scoreboard * 100 / count_total , 2)
 
         data = {"Game Stage":       ["Exploration", "Combat", "Menu", "Console", "Scoreboard"],
-                "Min (Kbit)":       [min_exploration, min_combat, min_menu, min_console, min_scoreboard],
-                "Max (Kbit)":       [max_exploration, max_combat, max_menu, max_console, max_scoreboard],
-                "Mean (Kbit)":      [mean_exploration,mean_combat, mean_menu, mean_console, mean_scoreboard],
+                "Min (Bytes)":       [min_exploration, min_combat, min_menu, min_console, min_scoreboard],
+                "Max (Bytes)":       [max_exploration, max_combat, max_menu, max_console, max_scoreboard],
+                "Mean (Bytes)":      [mean_exploration,mean_combat, mean_menu, mean_console, mean_scoreboard],
                 "Coeff. Variation": [cv_exploration, cv_combat, cv_menu, cv_console, cv_scoreboard],
                 "Fraction (%)":     [dom_exploration, dom_combat, dom_menu, dom_console, dom_scoreboard]}
 
@@ -166,15 +168,12 @@ class DatasetAnalyzer():
         plt.clf()
 
     def plot_bitrate_time(self):
-
         # In order to avoid using same legend multiple times
         usedLegends = []
 
         if self.smooth:
-            plt.title("Bitrate/Time per Game Stage [E.M.A with alpha: {:.3f}] - [Overall kbps: {:.3f}]".format(2 / (self.windowLength+1), self.kbpsOverall))
             fig = sns.lineplot(data=self.dfInput, x="time", y="bitrateKbpsEMA", color='black', linewidth=1) 
         else:
-            plt.title("Bitrate/Time per Game Stage [Overall kbps: {:.3f}]".format(self.kbpsOverall))
             fig = sns.lineplot(data=self.dfInput, x="time", y="bitrateKbps", color='black', linewidth=1) 
 
         formerSec = 0
@@ -189,7 +188,9 @@ class DatasetAnalyzer():
             plt.axvspan(formerSec, sec, facecolor=color, alpha=0.15, label=label)
             formerSec = sec
 
-        plt.legend(facecolor='white', framealpha=1, loc="upper right") 
+        plt.legend(facecolor='white', framealpha=1, loc="upper right")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Bitrate [kbps]") 
         plt.margins(x=0)
         fig.figure.savefig("%s/%s.png" % (self.pathOutput, self.fileName), bbox_inches = "tight")
         plt.clf()
@@ -213,7 +214,7 @@ class DatasetAnalyzer():
                 self.avgStageBitrates[round(firstRow['time'] + timeDiff/2.0, 3)] = (accBitrateStage, firstRow[columnStage])
                 firstRow = deepcopy(row) 
 
-            tmpRow = deepcopy(row) 
+            tmpRow = deepcopy(row)
                 
         # for the last game stage
         if tmpRow['time'] != firstRow['time']:
@@ -237,19 +238,13 @@ class DatasetAnalyzer():
             else:
                 usedLegends.append(stage)
             
-            ax.scatter(x=sec, y=kbps, c=color, label=label, s=8) 
-        
-        if self.smooth:
-            plt.title("Average Bitrate per Game Stage [E.M.A with alpha: {:.3f}] - [Overall kbps: {:.3f}]".format(2 / (self.windowLength+1), self.kbpsOverall))
-        else:
-            plt.title("Average Bitrate per Game Stage [Overall kbps: {:.3f}]".format(self.kbpsOverall))
+            ax.scatter(x=sec, y=kbps, c=color, label=label) 
 
         ax.grid(b=True, which='major', color='black', linestyle='-', linewidth=0.5, alpha=0.1)
         plt.margins(x=0.01, y=0.01)
         plt.legend()
-        #plt.xticks(list(self.avgStageBitrates.keys()), rotation=90, fontsize=6)
-        plt.xlabel("sec")
-        plt.ylabel("kbits/sec")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Bitrate [kbps]")
         fig.canvas.draw()
         plt.savefig("%s/%s_avgBperStage.png" % (self.pathOutput, self.fileName), bbox_inches = "tight")
         plt.clf()
@@ -274,35 +269,110 @@ class DatasetAnalyzer():
                 else:
                     usedLegends.append(stage)
                 
-                ax.scatter(x=sec, y=kbps-formerKbps, c=color, label=label, s=9)   
+                ax.scatter(x=sec, y=kbps-formerKbps, c=color, label=label)   
                 formerKbps = kbps
-            
-            if self.smooth:
-                plt.title("Variation of Average Bitrate: B(n) - B(n-1) [E.M.A with alpha: {:.3f}] - [Overall kbps: {:.3f}]".format(2 / (self.windowLength+1), self.kbpsOverall))
-            else:
-                plt.title("Variation of Average Bitrate: B(n) - B(n-1) [Overall kbps: {:.3f}]".format(self.kbpsOverall))
 
             ax.grid(b=True, which='major', color='black', linestyle='-', linewidth=0.5, alpha=0.1)
             plt.margins(x=0.01, y=0.01)
             plt.legend()
-            #plt.xticks(list(self.avgStageBitrates.keys()), rotation=90, fontsize=6)
-            plt.xlabel("sec")
-            plt.ylabel("kbits/sec")
+            plt.xlabel("Time [s]")
+            plt.ylabel("Bitrate [kbps]")
             fig.canvas.draw()
             plt.savefig("%s/%s_varB.png" % (self.pathOutput, self.fileName), bbox_inches = "tight")
             plt.clf()
 
-    def plot_bitrate_var_on_stage_changes(self):
-        """ Bitrate Variations During 2 Seconds around Stage Changes """
+    def get_stats_avg_bitrate_var_exp_combat(self): 
+        """ Variance of average bitrates from exploration to combat or vice-versa (Between an average kbps of former stage – average kbps of latter stage) """
 
-        if self.smooth: columnStage = 'gamestageEMA'
-        else:           columnStage = 'gamestage'
+        tuples_kbps_stage = list(self.avgStageBitrates.values())
 
-        bitrateVariances = {}
-        tmpRow = deepcopy(self.dfInput.iloc[0])
+        exp_combat_bandwidth_0_200,   combat_exp_bandwidth_0_200   = [], []
+        exp_combat_bandwidth_200_300, combat_exp_bandwidth_200_300 = [], []
+        exp_combat_bandwidth_300_350, combat_exp_bandwidth_300_350 = [], []
+        exp_combat_bandwidth_350_400, combat_exp_bandwidth_350_400 = [], []
+        exp_combat_bandwidth_400_450, combat_exp_bandwidth_400_450 = [], []
+        exp_combat_bandwidth_450_500, combat_exp_bandwidth_450_500 = [], []
+        exp_combat_bandwidth_500_inf, combat_exp_bandwidth_500_inf = [], []
+
+        for i in range(len(tuples_kbps_stage)-1):
+
+            baselineKbps = tuples_kbps_stage[i][0]
+            varKbps = round((tuples_kbps_stage[i+1][0] - baselineKbps) * 100 / baselineKbps, 2)
+
+            # Transition from Exploration to Combat
+            if tuples_kbps_stage[i][1] == GameStage.EXPLORATION and tuples_kbps_stage[i+1][1] == GameStage.COMBAT:
+
+                if   baselineKbps < 200:    exp_combat_bandwidth_0_200.append(varKbps)
+                elif baselineKbps < 300:    exp_combat_bandwidth_200_300.append(varKbps)
+                elif baselineKbps < 350:    exp_combat_bandwidth_300_350.append(varKbps)
+                elif baselineKbps < 400:    exp_combat_bandwidth_350_400.append(varKbps)
+                elif baselineKbps < 450:    exp_combat_bandwidth_400_450.append(varKbps)
+                elif baselineKbps < 500:    exp_combat_bandwidth_450_500.append(varKbps)
+                else:                       exp_combat_bandwidth_500_inf.append(varKbps)
+
+            # Transition from Combat to Exploration
+            elif tuples_kbps_stage[i][1] == GameStage.COMBAT and tuples_kbps_stage[i+1][1] == GameStage.EXPLORATION:
+
+                if   baselineKbps < 200:    combat_exp_bandwidth_0_200.append(varKbps)
+                elif baselineKbps < 300:    combat_exp_bandwidth_200_300.append(varKbps)
+                elif baselineKbps < 350:    combat_exp_bandwidth_300_350.append(varKbps)
+                elif baselineKbps < 400:    combat_exp_bandwidth_350_400.append(varKbps)
+                elif baselineKbps < 450:    combat_exp_bandwidth_400_450.append(varKbps)
+                elif baselineKbps < 500:    combat_exp_bandwidth_450_500.append(varKbps)
+                else:                       combat_exp_bandwidth_500_inf.append(varKbps)
+
+        data = {"Exploration->Combat":    ["BW < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Number of Transitions":  [len(exp_combat_bandwidth_0_200), len(exp_combat_bandwidth_200_300), len(exp_combat_bandwidth_300_350), len(exp_combat_bandwidth_350_400),
+                                           len(exp_combat_bandwidth_400_450), len(exp_combat_bandwidth_450_500), len(exp_combat_bandwidth_500_inf)],
+                "Negative Variance (%)":  [ratio_negatives(exp_combat_bandwidth_0_200), ratio_negatives(exp_combat_bandwidth_200_300), ratio_negatives(exp_combat_bandwidth_300_350),
+                                           ratio_negatives(exp_combat_bandwidth_350_400), ratio_negatives(exp_combat_bandwidth_400_450), ratio_negatives(exp_combat_bandwidth_450_500), ratio_negatives(exp_combat_bandwidth_500_inf)],
+                "Min. Variance (%)":   [min(exp_combat_bandwidth_0_200, default='-'), min(exp_combat_bandwidth_200_300, default='-'), min(exp_combat_bandwidth_300_350, default='-'), 
+                                        min(exp_combat_bandwidth_350_400, default='-'), min(exp_combat_bandwidth_400_450, default='-'), min(exp_combat_bandwidth_450_500, default='-'), min(exp_combat_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)":   [max(exp_combat_bandwidth_0_200, default='-'), max(exp_combat_bandwidth_200_300, default='-'), max(exp_combat_bandwidth_300_350, default='-'),
+                                        max(exp_combat_bandwidth_350_400, default='-'), max(exp_combat_bandwidth_400_450, default='-'), max(exp_combat_bandwidth_450_500, default='-'), max(exp_combat_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)":   [mean(exp_combat_bandwidth_0_200), mean(exp_combat_bandwidth_200_300), mean(exp_combat_bandwidth_300_350), mean(exp_combat_bandwidth_350_400), mean(exp_combat_bandwidth_400_450), mean(exp_combat_bandwidth_450_500), mean(exp_combat_bandwidth_500_inf)]
+               }
+        
+        dfOutput = pd.DataFrame(data) 
+        fig,ax = self.render_table(dfOutput)
+        fig.savefig("%s/%s_stats_varAvgKbps_expToCombat.png" % (self.pathOutput, self.fileName))
+        plt.clf()
+
+        data = {"Combat->Exploration":    ["BW < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Number of Transitions":  [len(combat_exp_bandwidth_0_200), len(combat_exp_bandwidth_200_300), len(combat_exp_bandwidth_300_350), len(combat_exp_bandwidth_350_400),
+                                           len(combat_exp_bandwidth_400_450), len(combat_exp_bandwidth_450_500), len(combat_exp_bandwidth_500_inf)],
+                "Negative Variance (%)":  [ratio_negatives(combat_exp_bandwidth_0_200), ratio_negatives(combat_exp_bandwidth_200_300), ratio_negatives(combat_exp_bandwidth_300_350),
+                                           ratio_negatives(combat_exp_bandwidth_350_400), ratio_negatives(combat_exp_bandwidth_400_450), ratio_negatives(combat_exp_bandwidth_450_500), ratio_negatives(combat_exp_bandwidth_500_inf)],
+                "Min. Variance (%)":   [min(combat_exp_bandwidth_0_200, default='-'), min(combat_exp_bandwidth_200_300, default='-'), min(combat_exp_bandwidth_300_350, default='-'), 
+                                        min(combat_exp_bandwidth_350_400, default='-'), min(combat_exp_bandwidth_400_450, default='-'), min(combat_exp_bandwidth_450_500, default='-'), min(combat_exp_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)":   [max(combat_exp_bandwidth_0_200, default='-'), max(combat_exp_bandwidth_200_300, default='-'), max(combat_exp_bandwidth_300_350, default='-'),
+                                        max(combat_exp_bandwidth_350_400, default='-'), max(combat_exp_bandwidth_400_450, default='-'), max(combat_exp_bandwidth_450_500, default='-'), max(combat_exp_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)":   [mean(combat_exp_bandwidth_0_200), mean(combat_exp_bandwidth_200_300), mean(combat_exp_bandwidth_300_350), mean(combat_exp_bandwidth_350_400), mean(combat_exp_bandwidth_400_450), mean(combat_exp_bandwidth_450_500), mean(combat_exp_bandwidth_500_inf)]
+               }
+        
+        dfOutput = pd.DataFrame(data) 
+        fig,ax = self.render_table(dfOutput)
+        fig.savefig("%s/%s_stats_varAvgKbps_combatToExp.png" % (self.pathOutput, self.fileName))
+        plt.clf()
+
+    def plot_bitrate_var_on_stage_changes(self, frameRange):
+        """ Bitrate Variance between 'frameRange' frames before a change and 'frameRange' frames after a change (maximum)"""
+
+        if self.smooth: 
+            columnStage    = 'gamestageEMA'
+            columnBitrate  = 'bitrateKbpsEMA'
+        else:           
+            columnStage    = 'gamestage'
+            columnBitrate  = 'bitrateKbps'
+
+        # There is no calculated bitrate value before 35th frame.
+        tmpRow = deepcopy(self.dfInput.iloc[FPS-1])
         totalRows = self.dfInput.shape[0]
 
         for index, row in self.dfInput.iterrows():
+
+            # There is no calculated bitrate value before 35th frame.
+            if index < FPS:   continue
 
             # Game stage change
             if row[columnStage] != tmpRow[columnStage]:
@@ -310,27 +380,26 @@ class DatasetAnalyzer():
                 # Lowerbound and upperbound must be at the same distance from the index of change
                 counterBackward = counterForward = 0
 
-                while counterBackward < FPS and \
-                        index-(counterBackward+1) > 0 and \
+                while counterBackward < frameRange and \
+                        index-(counterBackward+1) >= FPS-1 and \
                             self.dfInput.iloc[index-(counterBackward+1)][columnStage] == tmpRow[columnStage]:
                     counterBackward += 1
 
-                while counterForward < FPS and \
+                while counterForward < frameRange and \
                         index+(counterForward+1) < totalRows and \
                             self.dfInput.iloc[index+(counterForward+1)][columnStage] == row[columnStage]:
                     counterForward += 1
 
                 # if counterBackward is not zero (to avoid cases like: 0001000)
                 if counterBackward == 0 or counterForward == 0:
-                    
-                    bitrateKbps = int((self.dfInput.iloc[index]['accumulatedKbits'] - self.dfInput.iloc[index-1]['accumulatedKbits']) /
-                                      (self.dfInput.iloc[index]['time'] - self.dfInput.iloc[index-1]['time']))
+                    baselineKbps = self.dfInput.iloc[index-1][columnBitrate]
+                    varKbps = int((self.dfInput.iloc[index][columnBitrate] - baselineKbps) * 100 / baselineKbps)
                 else:
                     bound = counterBackward if counterBackward < counterForward else counterForward
-                    bitrateKbps = int((self.dfInput.iloc[index+bound]['accumulatedKbits'] - self.dfInput.iloc[index-bound]['accumulatedKbits']) /
-                                      (self.dfInput.iloc[index+bound]['time'] - self.dfInput.iloc[index-bound]['time']))
+                    baselineKbps = self.dfInput.iloc[index-bound][columnBitrate]
+                    varKbps = int((self.dfInput.iloc[index+bound][columnBitrate] - baselineKbps) * 100 / baselineKbps)
 
-                bitrateVariances[round(row['time'], 3)] = (bitrateKbps, row[columnStage])
+                self.bitrateVariances[(round(row['time'], 3), baselineKbps)] = (varKbps, tmpRow[columnStage], row[columnStage])
             
             tmpRow = deepcopy(row)
 
@@ -340,106 +409,92 @@ class DatasetAnalyzer():
         fig = plt.figure()
         ax  = fig.add_subplot(111, facecolor='white')
 
-        for sec, (kbps, stage) in bitrateVariances.items():
+        for (sec, baselineKbps), (varKbps, formerStage, latterStage) in self.bitrateVariances.items():
 
-            color, label = legendMap[stage]
-            if stage in usedLegends:
+            color, label = legendMap[latterStage]
+            if latterStage in usedLegends:
                 label = None
             else:
-                usedLegends.append(stage)
+                usedLegends.append(latterStage)
             
-            ax.scatter(x=sec, y=kbps, c=color, label=label, s=8) 
-        
-        if self.smooth:
-            plt.title("Bitrate Change During 2 Seconds around Stage Changes [E.M.A with alpha: {:.3f}] - [Overall kbps: {:.3f}]".format(2 / (self.windowLength+1), self.kbpsOverall))
-        else:
-            plt.title("Bitrate Change During 2 Seconds around Stage Changes [Overall kbps: {:.3f}]".format(self.kbpsOverall))
+            ax.scatter(x=sec, y=varKbps, c=color, label=label) 
 
         ax.grid(b=True, which='major', color='black', linestyle='-', linewidth=0.5, alpha=0.1)
         plt.margins(x=0.01, y=0.01)
         plt.legend()
-        #plt.xticks(list(self.avgStageBitrates.keys()), rotation=90, fontsize=6)
-        plt.xlabel("sec")
-        plt.ylabel("kbits/sec")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Bitrate [kbps]")
         fig.canvas.draw()
-        plt.savefig("%s/%s_bitrate_2secVar.png" % (self.pathOutput, self.fileName), bbox_inches = "tight")
+        plt.savefig("%s/%s_kbps_var_range%i.png" % (self.pathOutput, self.fileName, frameRange), bbox_inches = "tight")
         plt.clf()
 
-    def get_stats_avg_bitrate_var_exp_combat(self): 
-        """ Variation of average bitrates from exploration to combat or vice-versa (Between an average kbps of former stage – average kbps of latter stage) """
+    def get_stats_bitrate_var_on_stage_changes(self, frameRange): 
+        """ Bitrate Variances between 'frameRange' frames before change and 'frameRange' frames after change (maximum)"""
 
-        avgKbpsChangeOn_exp_to_combat = {}
-        avgKbpsChangeOn_combat_to_exp = {}
+        exp_combat_bandwidth_0_200,   combat_exp_bandwidth_0_200   = [], []
+        exp_combat_bandwidth_200_300, combat_exp_bandwidth_200_300 = [], []
+        exp_combat_bandwidth_300_350, combat_exp_bandwidth_300_350 = [], []
+        exp_combat_bandwidth_350_400, combat_exp_bandwidth_350_400 = [], []
+        exp_combat_bandwidth_400_450, combat_exp_bandwidth_400_450 = [], []
+        exp_combat_bandwidth_450_500, combat_exp_bandwidth_450_500 = [], []
+        exp_combat_bandwidth_500_inf, combat_exp_bandwidth_500_inf = [], []
 
-        tuples_kbps_stage = list(self.avgStageBitrates.values())
+        for (sec, baselineKbps), (varKbps, formerStage, latterStage) in self.bitrateVariances.items():
+            # Transition from Exploration to Combat
+            if formerStage == GameStage.EXPLORATION and latterStage == GameStage.COMBAT:
 
-        for i in range(len(tuples_kbps_stage)-1):
-            # Change from Exploration to Combat
-            if tuples_kbps_stage[i][1] == GameStage.EXPLORATION and tuples_kbps_stage[i+1][1] == GameStage.COMBAT:
+                if   baselineKbps < 200:    exp_combat_bandwidth_0_200.append(varKbps)
+                elif baselineKbps < 300:    exp_combat_bandwidth_200_300.append(varKbps)
+                elif baselineKbps < 350:    exp_combat_bandwidth_300_350.append(varKbps)
+                elif baselineKbps < 400:    exp_combat_bandwidth_350_400.append(varKbps)
+                elif baselineKbps < 450:    exp_combat_bandwidth_400_450.append(varKbps)
+                elif baselineKbps < 500:    exp_combat_bandwidth_450_500.append(varKbps)
+                else:                       exp_combat_bandwidth_500_inf.append(varKbps)
 
-                baseBitrate = tuples_kbps_stage[i][0]
-                variance = round((tuples_kbps_stage[i+1][0] - baseBitrate) * 100 / baseBitrate, 2)
+            # Transition from Combat to Exploration
+            if formerStage == GameStage.COMBAT and latterStage == GameStage.EXPLORATION:
 
-                if baseBitrate not in avgKbpsChangeOn_exp_to_combat:
-                    avgKbpsChangeOn_exp_to_combat[baseBitrate] = variance
-                else:
-                    avgKbpsChangeOn_exp_to_combat[baseBitrate] = round((avgKbpsChangeOn_exp_to_combat[baseBitrate] + variance) / 2, 2)
+                if   baselineKbps < 200:    combat_exp_bandwidth_0_200.append(varKbps)
+                elif baselineKbps < 300:    combat_exp_bandwidth_200_300.append(varKbps)
+                elif baselineKbps < 350:    combat_exp_bandwidth_300_350.append(varKbps)
+                elif baselineKbps < 400:    combat_exp_bandwidth_350_400.append(varKbps)
+                elif baselineKbps < 450:    combat_exp_bandwidth_400_450.append(varKbps)
+                elif baselineKbps < 500:    combat_exp_bandwidth_450_500.append(varKbps)
+                else:                       combat_exp_bandwidth_500_inf.append(varKbps)
 
-            # Change from Combat to Exploration
-            elif tuples_kbps_stage[i][1] == GameStage.COMBAT and tuples_kbps_stage[i+1][1] == GameStage.EXPLORATION:
 
-                baseBitrate = tuples_kbps_stage[i][0]
-                variance = round((tuples_kbps_stage[i+1][0] - baseBitrate) * 100 / baseBitrate, 2)
-
-                if baseBitrate not in avgKbpsChangeOn_combat_to_exp:
-                    avgKbpsChangeOn_combat_to_exp[baseBitrate] = variance
-                else:
-                    avgKbpsChangeOn_combat_to_exp[baseBitrate] = round((avgKbpsChangeOn_combat_to_exp[baseBitrate] + variance) / 2, 2)
-
-        bandwidth_0_100   = [var for (b, var) in avgKbpsChangeOn_exp_to_combat.items() if b < 100]
-        bandwidth_100_200 = [var for (b, var) in avgKbpsChangeOn_exp_to_combat.items() if b >= 100 and b < 200]
-        bandwidth_200_300 = [var for (b, var) in avgKbpsChangeOn_exp_to_combat.items() if b >= 200 and b < 300]
-        bandwidth_300_400 = [var for (b, var) in avgKbpsChangeOn_exp_to_combat.items() if b >= 300 and b < 400]
-        bandwidth_400_500 = [var for (b, var) in avgKbpsChangeOn_exp_to_combat.items() if b >= 400 and b < 500]
-        bandwidth_500_inf = [var for (b, var) in avgKbpsChangeOn_exp_to_combat.items() if b > 500]
-
-        data = {"Exploration->Combat": ["BW < 100 kbps", "BW 100-200 kbps", "BW 200-300 kbps", "BW 300-400 kbps", "BW 400-500 kbps", "BW > 500 kbps"],
-                "Number of Change":       [len(bandwidth_0_100), len(bandwidth_100_200), len(bandwidth_200_300), len(bandwidth_300_400), len(bandwidth_400_500), len(bandwidth_500_inf)],
-                "Negative Variation (%)": [ratio_negatives(bandwidth_0_100), ratio_negatives(bandwidth_100_200), ratio_negatives(bandwidth_200_300),
-                                           ratio_negatives(bandwidth_300_400), ratio_negatives(bandwidth_400_500), ratio_negatives(bandwidth_500_inf)],
-                "Min Variation (%)":   [min(bandwidth_0_100, default='-'), min(bandwidth_100_200, default='-'), min(bandwidth_200_300, default='-'), 
-                                        min(bandwidth_300_400, default='-'), min(bandwidth_400_500, default='-'), min(bandwidth_500_inf, default='-')],
-                "Max Variation (%)":   [max(bandwidth_0_100, default='-'), max(bandwidth_100_200, default='-'), max(bandwidth_200_300, default='-'),
-                                        max(bandwidth_300_400, default='-'), max(bandwidth_400_500, default='-'), max(bandwidth_500_inf, default='-')],
-                "Avg. Variation (%)":  [mean(bandwidth_0_100), mean(bandwidth_100_200), mean(bandwidth_200_300), mean(bandwidth_300_400), mean(bandwidth_400_500), mean(bandwidth_500_inf)]
+        data = {"Exploration->Combat":    ["BW < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Number of Transitions":  [len(exp_combat_bandwidth_0_200), len(exp_combat_bandwidth_200_300), len(exp_combat_bandwidth_300_350), len(exp_combat_bandwidth_350_400),
+                                           len(exp_combat_bandwidth_400_450), len(exp_combat_bandwidth_450_500), len(exp_combat_bandwidth_500_inf)],
+                "Negative Variance (%)":  [ratio_negatives(exp_combat_bandwidth_0_200), ratio_negatives(exp_combat_bandwidth_200_300), ratio_negatives(exp_combat_bandwidth_300_350),
+                                           ratio_negatives(exp_combat_bandwidth_350_400), ratio_negatives(exp_combat_bandwidth_400_450), ratio_negatives(exp_combat_bandwidth_450_500), ratio_negatives(exp_combat_bandwidth_500_inf)],
+                "Min. Variance (%)":   [min(exp_combat_bandwidth_0_200, default='-'), min(exp_combat_bandwidth_200_300, default='-'), min(exp_combat_bandwidth_300_350, default='-'), 
+                                        min(exp_combat_bandwidth_350_400, default='-'), min(exp_combat_bandwidth_400_450, default='-'), min(exp_combat_bandwidth_450_500, default='-'), min(exp_combat_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)":   [max(exp_combat_bandwidth_0_200, default='-'), max(exp_combat_bandwidth_200_300, default='-'), max(exp_combat_bandwidth_300_350, default='-'),
+                                        max(exp_combat_bandwidth_350_400, default='-'), max(exp_combat_bandwidth_400_450, default='-'), max(exp_combat_bandwidth_450_500, default='-'), max(exp_combat_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)":   [mean(exp_combat_bandwidth_0_200), mean(exp_combat_bandwidth_200_300), mean(exp_combat_bandwidth_300_350), mean(exp_combat_bandwidth_350_400), mean(exp_combat_bandwidth_400_450), mean(exp_combat_bandwidth_450_500), mean(exp_combat_bandwidth_500_inf)]
                }
         
         dfOutput = pd.DataFrame(data) 
         fig,ax = self.render_table(dfOutput)
-        fig.savefig("%s/%s_stats_varAvgKbps_expToCombat.png" % (self.pathOutput, self.fileName))
+        fig.savefig("%s/%s_kbps_var_range%i_exp_combat.png" % (self.pathOutput, self.fileName, frameRange))
         plt.clf()
 
-        bandwidth_0_100   = [var for (b, var) in avgKbpsChangeOn_combat_to_exp.items() if b < 100]
-        bandwidth_100_200 = [var for (b, var) in avgKbpsChangeOn_combat_to_exp.items() if b >= 100 and b < 200]
-        bandwidth_200_300 = [var for (b, var) in avgKbpsChangeOn_combat_to_exp.items() if b >= 200 and b < 300]
-        bandwidth_300_400 = [var for (b, var) in avgKbpsChangeOn_combat_to_exp.items() if b >= 300 and b < 400]
-        bandwidth_400_500 = [var for (b, var) in avgKbpsChangeOn_combat_to_exp.items() if b >= 400 and b < 500]
-        bandwidth_500_inf = [var for (b, var) in avgKbpsChangeOn_combat_to_exp.items() if b > 500]
-
-        data = {"Combat->Exploration": ["BW < 100 kbps", "BW 100-200 kbps", "BW 200-300 kbps", "BW 300-400 kbps", "BW 400-500 kbps", "BW > 500 kbps"],
-                "Number of Change":       [len(bandwidth_0_100), len(bandwidth_100_200), len(bandwidth_200_300), len(bandwidth_300_400), len(bandwidth_400_500), len(bandwidth_500_inf)],
-                "Negative Variation (%)": [ratio_negatives(bandwidth_0_100), ratio_negatives(bandwidth_100_200), ratio_negatives(bandwidth_200_300),
-                                           ratio_negatives(bandwidth_300_400), ratio_negatives(bandwidth_400_500), ratio_negatives(bandwidth_500_inf)],
-                "Min Variation (%)":   [min(bandwidth_0_100, default='-'), min(bandwidth_100_200, default='-'), min(bandwidth_200_300, default='-'), 
-                                        min(bandwidth_300_400, default='-'), min(bandwidth_400_500, default='-'), min(bandwidth_500_inf, default='-')],
-                "Max Variation (%)":   [max(bandwidth_0_100, default='-'), max(bandwidth_100_200, default='-'), max(bandwidth_200_300, default='-'),
-                                        max(bandwidth_300_400, default='-'), max(bandwidth_400_500, default='-'), max(bandwidth_500_inf, default='-')],
-                "Avg. Variation (%)":  [mean(bandwidth_0_100), mean(bandwidth_100_200), mean(bandwidth_200_300), mean(bandwidth_300_400), mean(bandwidth_400_500), mean(bandwidth_500_inf)]
+        data = {"Combat->Exploration":    ["BW < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Number of Transitions":  [len(combat_exp_bandwidth_0_200), len(combat_exp_bandwidth_200_300), len(combat_exp_bandwidth_300_350), len(combat_exp_bandwidth_350_400),
+                                           len(combat_exp_bandwidth_400_450), len(combat_exp_bandwidth_450_500), len(combat_exp_bandwidth_500_inf)],
+                "Negative Variance (%)":  [ratio_negatives(combat_exp_bandwidth_0_200), ratio_negatives(combat_exp_bandwidth_200_300), ratio_negatives(combat_exp_bandwidth_300_350),
+                                           ratio_negatives(combat_exp_bandwidth_350_400), ratio_negatives(combat_exp_bandwidth_400_450), ratio_negatives(combat_exp_bandwidth_450_500), ratio_negatives(combat_exp_bandwidth_500_inf)],
+                "Min. Variance (%)":   [min(combat_exp_bandwidth_0_200, default='-'), min(combat_exp_bandwidth_200_300, default='-'), min(combat_exp_bandwidth_300_350, default='-'), 
+                                        min(combat_exp_bandwidth_350_400, default='-'), min(combat_exp_bandwidth_400_450, default='-'), min(combat_exp_bandwidth_450_500, default='-'), min(combat_exp_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)":   [max(combat_exp_bandwidth_0_200, default='-'), max(combat_exp_bandwidth_200_300, default='-'), max(combat_exp_bandwidth_300_350, default='-'),
+                                        max(combat_exp_bandwidth_350_400, default='-'), max(combat_exp_bandwidth_400_450, default='-'), max(combat_exp_bandwidth_450_500, default='-'), max(combat_exp_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)":   [mean(combat_exp_bandwidth_0_200), mean(combat_exp_bandwidth_200_300), mean(combat_exp_bandwidth_300_350), mean(combat_exp_bandwidth_350_400), mean(combat_exp_bandwidth_400_450), mean(combat_exp_bandwidth_450_500), mean(combat_exp_bandwidth_500_inf)]
                }
         
         dfOutput = pd.DataFrame(data) 
         fig,ax = self.render_table(dfOutput)
-        fig.savefig("%s/%s_stats_varAvgKbps_combatToExp.png" % (self.pathOutput, self.fileName))
+        fig.savefig("%s/%s_kbps_var_range%i_combat_exp.png" % (self.pathOutput, self.fileName, frameRange))
         plt.clf()
 
     def get_transition_matrix_exp_combat(self):
@@ -449,7 +504,7 @@ class DatasetAnalyzer():
 
         countTransitionExpToCombat = countTransitionCombatToExp = countTransitionExpToExp = countTransitionCombatToCombat = 0
 
-        for i in range(self.dfInput.shape[0]-1):
+        for i in range(self.dfInput.shape[0] - 1):
 
             formerStage, latterStage = self.dfInput.loc[i, columnStage], self.dfInput.loc[i+1, columnStage]
 
@@ -517,7 +572,8 @@ class DatasetAnalyzer():
         for p in ax.patches:
             ax.annotate(str(p.get_height()), (p.get_x() * 1.005, p.get_height() * 1.015), fontsize=8)
 
-        plt.ylabel("Count")
+        plt.ylabel("Number of Frames") 
+        plt.xlabel("Bitrate [kbps]")
         plt.savefig("%s/%s_countHistogram.png" % (self.pathOutput, self.fileName), bbox_inches = "tight")
         plt.clf()
         
@@ -552,7 +608,7 @@ class DatasetAnalyzer():
             baseBitrate = self.dfInput.loc[i, columnBitrate]
             variance = round((self.dfInput.loc[i+1, columnBitrate] - baseBitrate) * 100 / baseBitrate, 2)
 
-            if   formerStage == GameStage.EXPLORATION and latterStage == GameStage.COMBAT:
+            if formerStage == GameStage.EXPLORATION and latterStage == GameStage.COMBAT:
 
                 if baseBitrate not in bitrateVariance_exp_combat:
                     bitrateVariance_exp_combat[baseBitrate] = variance
@@ -580,41 +636,106 @@ class DatasetAnalyzer():
                 else:
                     bitrateVariance_combat_combat[baseBitrate] = round((bitrateVariance_combat_combat[baseBitrate] + variance) / 2, 2)
 
-        exp_combat_bandwidth_0_100   = [var for (b, var) in bitrateVariance_exp_combat.items() if b < 100]
-        exp_combat_bandwidth_100_200 = [var for (b, var) in bitrateVariance_exp_combat.items() if b >= 100 and b < 200]
-        exp_combat_bandwidth_200_300 = [var for (b, var) in bitrateVariance_exp_combat.items() if b >= 200 and b < 300]
-        exp_combat_bandwidth_300_400 = [var for (b, var) in bitrateVariance_exp_combat.items() if b >= 300 and b < 400]
-        exp_combat_bandwidth_400_500 = [var for (b, var) in bitrateVariance_exp_combat.items() if b >= 400 and b < 500]
-        exp_combat_bandwidth_500_inf = [var for (b, var) in bitrateVariance_exp_combat.items() if b > 500]
-
-        combat_exp_bandwidth_0_100   = [var for (b, var) in bitrateVariance_combat_exp.items() if b < 100]
-        combat_exp_bandwidth_100_200 = [var for (b, var) in bitrateVariance_combat_exp.items() if b >= 100 and b < 200]
-        combat_exp_bandwidth_200_300 = [var for (b, var) in bitrateVariance_combat_exp.items() if b >= 200 and b < 300]
-        combat_exp_bandwidth_300_400 = [var for (b, var) in bitrateVariance_combat_exp.items() if b >= 300 and b < 400]
-        combat_exp_bandwidth_400_500 = [var for (b, var) in bitrateVariance_combat_exp.items() if b >= 400 and b < 500]
-        combat_exp_bandwidth_500_inf = [var for (b, var) in bitrateVariance_combat_exp.items() if b > 500]
-
-        exp_exp_bandwidth_0_100   = [var for (b, var) in bitrateVariance_exp_exp.items() if b < 100]
-        exp_exp_bandwidth_100_200 = [var for (b, var) in bitrateVariance_exp_exp.items() if b >= 100 and b < 200]
-        exp_exp_bandwidth_200_300 = [var for (b, var) in bitrateVariance_exp_exp.items() if b >= 200 and b < 300]
-        exp_exp_bandwidth_300_400 = [var for (b, var) in bitrateVariance_exp_exp.items() if b >= 300 and b < 400]
-        exp_exp_bandwidth_400_500 = [var for (b, var) in bitrateVariance_exp_exp.items() if b >= 400 and b < 500]
-        exp_exp_bandwidth_500_inf = [var for (b, var) in bitrateVariance_exp_exp.items() if b > 500]
-
-        combat_combat_bandwidth_0_100   = [var for (b, var) in bitrateVariance_combat_combat.items() if b < 100]
-        combat_combat_bandwidth_100_200 = [var for (b, var) in bitrateVariance_combat_combat.items() if b >= 100 and b < 200]
-        combat_combat_bandwidth_200_300 = [var for (b, var) in bitrateVariance_combat_combat.items() if b >= 200 and b < 300]
-        combat_combat_bandwidth_300_400 = [var for (b, var) in bitrateVariance_combat_combat.items() if b >= 300 and b < 400]
-        combat_combat_bandwidth_400_500 = [var for (b, var) in bitrateVariance_combat_combat.items() if b >= 400 and b < 500]
-        combat_combat_bandwidth_500_inf = [var for (b, var) in bitrateVariance_combat_combat.items() if b > 500]
+        exp_combat_bandwidth_0_200 = []
+        exp_combat_bandwidth_200_300 = []
+        exp_combat_bandwidth_300_350 = []
+        exp_combat_bandwidth_350_400 = []
+        exp_combat_bandwidth_400_450 = []
+        exp_combat_bandwidth_450_500 = []
+        exp_combat_bandwidth_500_inf = []
+        combat_exp_bandwidth_0_200 = []
+        combat_exp_bandwidth_200_300 = []
+        combat_exp_bandwidth_300_350 = []
+        combat_exp_bandwidth_350_400 = []
+        combat_exp_bandwidth_400_450 = []
+        combat_exp_bandwidth_450_500 = []
+        combat_exp_bandwidth_500_inf = []
+        exp_exp_bandwidth_0_200 = []
+        exp_exp_bandwidth_200_300 = []
+        exp_exp_bandwidth_300_350 = []
+        exp_exp_bandwidth_350_400 = []
+        exp_exp_bandwidth_400_450 = []
+        exp_exp_bandwidth_450_500 = []
+        exp_exp_bandwidth_500_inf = []
+        combat_combat_bandwidth_0_200 = []
+        combat_combat_bandwidth_200_300 = []
+        combat_combat_bandwidth_300_350 = []
+        combat_combat_bandwidth_350_400 = []
+        combat_combat_bandwidth_400_450 = []
+        combat_combat_bandwidth_450_500 = []
+        combat_combat_bandwidth_500_inf = []
         
-        data = {"Exploration->Combat": ["BW 0 < 100 kbps", "BW 100-200 kbps", "BW 200-300 kbps", "BW 300-400 kbps", "BW 400-500 kbps", "BW > 500 kbps"],
-                "Min. Variance (%)": [min(exp_combat_bandwidth_0_100, default='-'), min(exp_combat_bandwidth_100_200, default='-'), min(exp_combat_bandwidth_200_300, default='-'), 
-                                      min(exp_combat_bandwidth_300_400, default='-'), min(exp_combat_bandwidth_400_500, default='-'), min(exp_combat_bandwidth_500_inf, default='-')],
-                "Max. Variance (%)": [max(exp_combat_bandwidth_0_100, default='-'), max(exp_combat_bandwidth_100_200, default='-'), max(exp_combat_bandwidth_200_300, default='-'), 
-                                      max(exp_combat_bandwidth_300_400, default='-'), max(exp_combat_bandwidth_400_500, default='-'), max(exp_combat_bandwidth_500_inf, default='-')],
-                "Avg. Variance (%)": [mean(exp_combat_bandwidth_0_100), mean(exp_combat_bandwidth_100_200), mean(exp_combat_bandwidth_200_300), mean(exp_combat_bandwidth_300_400), 
-                                      mean(exp_combat_bandwidth_400_500), mean(exp_combat_bandwidth_500_inf)]
+        for (b, var) in bitrateVariance_exp_combat.items():
+            if b < 200:
+                exp_combat_bandwidth_0_200.append(var)
+            elif b < 300:
+                exp_combat_bandwidth_200_300.append(var)
+            elif b < 350:
+                exp_combat_bandwidth_300_350.append(var)
+            elif b < 400:
+                exp_combat_bandwidth_350_400.append(var)
+            elif b < 450:
+                exp_combat_bandwidth_400_450.append(var)
+            elif b < 500:
+                exp_combat_bandwidth_450_500.append(var)
+            else:
+                exp_combat_bandwidth_500_inf.append(var)
+
+        for (b, var) in bitrateVariance_combat_exp.items():
+            if b < 200:
+                combat_exp_bandwidth_0_200.append(var)
+            elif b < 300:
+                combat_exp_bandwidth_200_300.append(var)
+            elif b < 350:
+                combat_exp_bandwidth_300_350.append(var)
+            elif b < 400:
+                combat_exp_bandwidth_350_400.append(var)
+            elif b < 450:
+                combat_exp_bandwidth_400_450.append(var)
+            elif b < 500:
+                combat_exp_bandwidth_450_500.append(var)
+            else:
+                combat_exp_bandwidth_500_inf.append(var)
+
+        for (b, var) in bitrateVariance_exp_exp.items():
+            if b < 200:
+                exp_exp_bandwidth_0_200.append(var)
+            elif b < 300:
+                exp_exp_bandwidth_200_300.append(var)
+            elif b < 350:
+                exp_exp_bandwidth_300_350.append(var)
+            elif b < 400:
+                exp_exp_bandwidth_350_400.append(var)
+            elif b < 450:
+                exp_exp_bandwidth_400_450.append(var)
+            elif b < 500:
+                exp_exp_bandwidth_450_500.append(var)
+            else:
+                exp_exp_bandwidth_500_inf.append(var)
+
+        for (b, var) in bitrateVariance_combat_combat.items():
+            if b < 200:
+                combat_combat_bandwidth_0_200.append(var)
+            elif b < 300:
+                combat_combat_bandwidth_200_300.append(var)
+            elif b < 350:
+                combat_combat_bandwidth_300_350.append(var)
+            elif b < 400:
+                combat_combat_bandwidth_350_400.append(var)
+            elif b < 450:
+                combat_combat_bandwidth_400_450.append(var)
+            elif b < 500:
+                combat_combat_bandwidth_450_500.append(var)
+            else:
+                combat_combat_bandwidth_500_inf.append(var)
+        
+        data = {"Exploration->Combat": ["BW 0 < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Min. Variance (%)": [min(exp_combat_bandwidth_0_200, default='-'), min(exp_combat_bandwidth_200_300, default='-'), min(exp_combat_bandwidth_300_350, default='-'), 
+                                      min(exp_combat_bandwidth_350_400, default='-'), min(exp_combat_bandwidth_400_450, default='-'), min(exp_combat_bandwidth_450_500, default='-'), min(exp_combat_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)": [max(exp_combat_bandwidth_0_200, default='-'), max(exp_combat_bandwidth_200_300, default='-'), max(exp_combat_bandwidth_300_350, default='-'), 
+                                      max(exp_combat_bandwidth_350_400, default='-'), max(exp_combat_bandwidth_400_450, default='-'), max(exp_combat_bandwidth_450_500, default='-'), max(exp_combat_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)": [mean(exp_combat_bandwidth_0_200), mean(exp_combat_bandwidth_200_300), mean(exp_combat_bandwidth_300_350), 
+                                      mean(exp_combat_bandwidth_350_400), mean(exp_combat_bandwidth_400_450), mean(exp_combat_bandwidth_450_500), mean(exp_combat_bandwidth_500_inf)]
                }
         
         dfOutput = pd.DataFrame(data) 
@@ -622,13 +743,13 @@ class DatasetAnalyzer():
         fig.savefig("%s/%s_bitrateVar_exp_combat.png" % (self.pathOutput, self.fileName))
         plt.clf()
 
-        data = {"Combat->Exploration": ["BW 0 < 100 kbps", "BW 100-200 kbps", "BW 200-300 kbps", "BW 300-400 kbps", "BW 400-500 kbps", "BW > 500 kbps"],
-                "Min. Variance (%)": [min(combat_exp_bandwidth_0_100, default='-'), min(combat_exp_bandwidth_100_200, default='-'), min(combat_exp_bandwidth_200_300, default='-'), 
-                                      min(combat_exp_bandwidth_300_400, default='-'), min(combat_exp_bandwidth_400_500, default='-'), min(combat_exp_bandwidth_500_inf, default='-')],
-                "Max. Variance (%)": [max(combat_exp_bandwidth_0_100, default='-'), max(combat_exp_bandwidth_100_200, default='-'), max(combat_exp_bandwidth_200_300, default='-'), 
-                                      max(combat_exp_bandwidth_300_400, default='-'), max(combat_exp_bandwidth_400_500, default='-'), max(combat_exp_bandwidth_500_inf, default='-')],
-                "Avg. Variance (%)": [mean(combat_exp_bandwidth_0_100), mean(combat_exp_bandwidth_100_200), mean(combat_exp_bandwidth_200_300), mean(combat_exp_bandwidth_300_400), 
-                                      mean(combat_exp_bandwidth_400_500), mean(combat_exp_bandwidth_500_inf)]
+        data = {"Combat->Exploration": ["BW 0 < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Min. Variance (%)": [min(combat_exp_bandwidth_0_200, default='-'), min(combat_exp_bandwidth_200_300, default='-'), min(combat_exp_bandwidth_300_350, default='-'), 
+                                      min(combat_exp_bandwidth_350_400, default='-'), min(combat_exp_bandwidth_400_450, default='-'), min(combat_exp_bandwidth_450_500, default='-'), min(combat_exp_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)": [max(combat_exp_bandwidth_0_200, default='-'), max(combat_exp_bandwidth_200_300, default='-'), max(combat_exp_bandwidth_300_350, default='-'), 
+                                      max(combat_exp_bandwidth_350_400, default='-'), max(combat_exp_bandwidth_400_450, default='-'), max(combat_exp_bandwidth_450_500, default='-'), max(combat_exp_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)": [mean(combat_exp_bandwidth_0_200), mean(combat_exp_bandwidth_200_300), mean(combat_exp_bandwidth_300_350), 
+                                      mean(combat_exp_bandwidth_350_400), mean(combat_exp_bandwidth_400_450), mean(combat_exp_bandwidth_450_500), mean(combat_exp_bandwidth_500_inf)]
                }
         
         dfOutput = pd.DataFrame(data) 
@@ -636,13 +757,13 @@ class DatasetAnalyzer():
         fig.savefig("%s/%s_bitrateVar_combat_exp.png" % (self.pathOutput, self.fileName))
         plt.clf()
 
-        data = {"Exploration->Exploration": ["BW 0 < 100 kbps", "BW 100-200 kbps", "BW 200-300 kbps", "BW 300-400 kbps", "BW 400-500 kbps", "BW > 500 kbps"],
-                "Min. Variance (%)": [min(exp_exp_bandwidth_0_100, default='-'), min(exp_exp_bandwidth_100_200, default='-'), min(exp_exp_bandwidth_200_300, default='-'), 
-                                      min(exp_exp_bandwidth_300_400, default='-'), min(exp_exp_bandwidth_400_500, default='-'), min(exp_exp_bandwidth_500_inf, default='-')],
-                "Max. Variance (%)": [max(exp_exp_bandwidth_0_100, default='-'), max(exp_exp_bandwidth_100_200, default='-'), max(exp_exp_bandwidth_200_300, default='-'), 
-                                      max(exp_exp_bandwidth_300_400, default='-'), max(exp_exp_bandwidth_400_500, default='-'), max(exp_exp_bandwidth_500_inf, default='-')],
-                "Avg. Variance (%)": [mean(exp_exp_bandwidth_0_100), mean(exp_exp_bandwidth_100_200), mean(exp_exp_bandwidth_200_300), mean(exp_exp_bandwidth_300_400), 
-                                      mean(exp_exp_bandwidth_400_500), mean(exp_exp_bandwidth_500_inf)]
+        data = {"Exploration->Exploration": ["BW 0 < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Min. Variance (%)": [min(exp_exp_bandwidth_0_200, default='-'), min(exp_exp_bandwidth_200_300, default='-'), min(exp_exp_bandwidth_300_350, default='-'), 
+                                      min(exp_exp_bandwidth_350_400, default='-'), min(exp_exp_bandwidth_400_450, default='-'), min(exp_exp_bandwidth_450_500, default='-'), min(exp_exp_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)": [max(exp_exp_bandwidth_0_200, default='-'), max(exp_exp_bandwidth_200_300, default='-'), max(exp_exp_bandwidth_300_350, default='-'), 
+                                      max(exp_exp_bandwidth_350_400, default='-'), max(exp_exp_bandwidth_400_450, default='-'), max(exp_exp_bandwidth_450_500, default='-'), max(exp_exp_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)": [mean(exp_exp_bandwidth_0_200), mean(exp_exp_bandwidth_200_300), mean(exp_exp_bandwidth_300_350), 
+                                      mean(exp_exp_bandwidth_350_400), mean(exp_exp_bandwidth_400_450), mean(exp_exp_bandwidth_450_500), mean(exp_exp_bandwidth_500_inf)]
                }
         
         dfOutput = pd.DataFrame(data) 
@@ -650,13 +771,13 @@ class DatasetAnalyzer():
         fig.savefig("%s/%s_bitrateVar_exp_exp.png" % (self.pathOutput, self.fileName))
         plt.clf()
 
-        data = {"Combat->Combat":    ["BW 0 < 100 kbps", "BW 100-200 kbps", "BW 200-300 kbps", "BW 300-400 kbps", "BW 400-500 kbps", "BW > 500 kbps"],
-                "Min. Variance (%)": [min(combat_combat_bandwidth_0_100, default='-'), min(combat_combat_bandwidth_100_200, default='-'), min(combat_combat_bandwidth_200_300, default='-'), 
-                                      min(combat_combat_bandwidth_300_400, default='-'), min(combat_combat_bandwidth_400_500, default='-'), min(combat_combat_bandwidth_500_inf, default='-')],
-                "Max. Variance (%)": [max(combat_combat_bandwidth_0_100, default='-'), max(combat_combat_bandwidth_100_200, default='-'), max(combat_combat_bandwidth_200_300, default='-'), 
-                                      max(combat_combat_bandwidth_300_400, default='-'), max(combat_combat_bandwidth_400_500, default='-'), max(combat_combat_bandwidth_500_inf, default='-')],
-                "Avg. Variance (%)": [mean(combat_combat_bandwidth_0_100), mean(combat_combat_bandwidth_100_200), mean(combat_combat_bandwidth_200_300), mean(combat_combat_bandwidth_300_400), 
-                                      mean(combat_combat_bandwidth_400_500), mean(combat_combat_bandwidth_500_inf)]
+        data = {"Combat->Combat": ["BW 0 < 200 kbps", "BW 200-300 kbps", "BW 300-350 kbps", "BW 350-400 kbps", "BW 400-450 kbps", "BW 450-500 kbps", "BW > 500 kbps"],
+                "Min. Variance (%)": [min(combat_combat_bandwidth_0_200, default='-'), min(combat_combat_bandwidth_200_300, default='-'), min(combat_combat_bandwidth_300_350, default='-'), 
+                                      min(combat_combat_bandwidth_350_400, default='-'), min(combat_combat_bandwidth_400_450, default='-'), min(combat_combat_bandwidth_450_500, default='-'), min(combat_combat_bandwidth_500_inf, default='-')],
+                "Max. Variance (%)": [max(combat_combat_bandwidth_0_200, default='-'), max(combat_combat_bandwidth_200_300, default='-'), max(combat_combat_bandwidth_300_350, default='-'), 
+                                      max(combat_combat_bandwidth_350_400, default='-'), max(combat_combat_bandwidth_400_450, default='-'), max(combat_combat_bandwidth_450_500, default='-'), max(combat_combat_bandwidth_500_inf, default='-')],
+                "Avg. Variance (%)": [mean(combat_combat_bandwidth_0_200), mean(combat_combat_bandwidth_200_300), mean(combat_combat_bandwidth_300_350), 
+                                      mean(combat_combat_bandwidth_350_400), mean(combat_combat_bandwidth_400_450), mean(combat_combat_bandwidth_450_500), mean(combat_combat_bandwidth_500_inf)]
                }
         
         dfOutput = pd.DataFrame(data) 

@@ -66,7 +66,7 @@ def main(parser, args, parameter_server=None):
     # Training / Evaluation parameters
     params.episode_time = None  # episode maximum duration (in seconds)
     params.eval_freq = 20000    # time (in iterations) between 2 evaluations
-    params.eval_time = 7200     # evaluation time (in seconds)
+    params.eval_time = 3600     # evaluation time (in seconds)
     
     # log experiment parameters
     with open(os.path.join(params.experiment_path, 'params.pkl'), 'wb') as f:
@@ -202,7 +202,7 @@ def evaluate_deathmatch(game, network, params, n_train_iter=None):
                 currentIndice, dictFrames, dictLabels = game.make_action(action, currentIndice, params.frame_skip, sleep=sleep, frames=dictFrames, labels=dictLabels)
 
                 nAction += 1
-                if nAction == 2100:     # Chunks of 3 mins long        
+                if nAction == 700:     # Chunks of 1 minutes long        
                     print("\nRECORDING ----> Chunk%i" % idChunk)
                     np.savez_compressed(os.path.join(pathDataset, 'chunk%i') % idChunk, **dictFrames, **dictLabels)
                     print("\nChunk%i ----> RECORDED!\n" % idChunk)
