@@ -690,6 +690,18 @@ class Game(object):
 
                     if self.generate_dataset:
 
+                        # For an experiment with only exploration and combat stages
+                        # sceneLabel = GameStage.EXPLORATION
+
+                        # for label in self._labels:
+                        #     if get_label_type_id(label) == 0:
+                        #         sceneLabel = GameStage.COMBAT
+                        #         break
+
+                        # frames['frame%i' % currentIndice] = self._screen_buffer
+                        # labels['label%i' % currentIndice] = sceneLabel
+                        # currentIndice += 1
+
                         sceneSelection = random.choices(["action", "console", "menu", "scoreboard"], weights=[1000, 1, 1, 1])[0]
 
                         if sceneSelection == "action":
@@ -713,9 +725,9 @@ class Game(object):
                             time.sleep(3)
                             
                             for _ in range(random.choice(range(70, 211))):
-                                frames['frame%i' % currentIndice] = self._screen_buffer
-                                labels['label%i' % currentIndice] = GameStage.CONSOLE
-                                currentIndice += 1
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = GameStage.CONSOLE
                             
                             self.game.send_game_command("menu_main")
                             self.game.send_game_command("closemenu")
@@ -726,9 +738,10 @@ class Game(object):
                             self.game.send_game_command("menu_main")
                             self.game.advance_action(20)           
                             self.update_buffers()
-                            time.sleep(3)            
+                            elapsedFrames = random.choice(range(175, 315))
+                            time.sleep(elapsedFrames//35)            
 
-                            for _ in range(random.choice(range(70, 211))):
+                            for _ in range(elapsedFrames):
                                 frames['frame%i' % currentIndice] = self._screen_buffer
                                 labels['label%i' % currentIndice] = GameStage.MENU
                                 currentIndice += 1
@@ -744,9 +757,9 @@ class Game(object):
                             time.sleep(3)
 
                             for _ in range(random.choice(range(70, 211))):
-                                frames['frame%i' % currentIndice] = self._screen_buffer
-                                labels['label%i' % currentIndice] = GameStage.SCOREBOARD
-                                currentIndice += 1
+                                i = len(frames)
+                                frames['frame%i' % i] = self._screen_buffer
+                                labels['label%i' % i] = GameStage.SCOREBOARD
                             
                             self.game.send_game_command("menu_main")
                             self.game.send_game_command("closemenu")
