@@ -2,9 +2,7 @@
 
 Barney is an enhanced implementation of Arnold, the Deep Reinforcement Learning agent presented in [*Playing FPS Games with Deep Reinforcement Learning*](https://arxiv.org/abs/1609.05521), and that won the [*ViZDoom AI Competition - 2017*](http://vizdoom.cs.put.edu.pl/competition-cig-2017).
 
-Barney is differentiated from Arnold in terms of automated gameplay dataset generation and analysis capabilities. It was mainly developed to anayze the correlation between game stages and strean's bitrate.
-
-![gameplay](./resources/gameplay.gif) 
+Barney is differentiated from Arnold in terms of automated gameplay dataset generation and analysis capabilities. It was mainly developed to anayze the correlation between game stages and stream bitrate.
 
 <p align="center">
   <img src="./resources/gameplay.gif" />
@@ -205,5 +203,7 @@ python arnold.py --scenario deathmatch --wad deathmatch_rockets --n_bots 8 \
 
 ## Dataset Generation and Analysis Using Pretrained Models
 
-![datasetGeneration](./resources/datasetGeneration.svg)
+<p align="center">
+  <img src="./resources/datasetGeneration.png" />
+</p>
 
