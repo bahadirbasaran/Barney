@@ -203,7 +203,6 @@ python arnold.py --scenario deathmatch --wad deathmatch_rockets --n_bots 8 \
 
 ## Dataset Generation and Analysis Using Pretrained Models
 
-<p float="left">
-  <img src="./resources/datasetGeneration.png" width="100" />
-  <img src="./resources/dataset_builder.png" width="100" /> 
-</p>
+Solarized dark             |  Solarized Ocean
+:-------------------------:|:-------------------------:
+![](./resources/datasetGeneration.png)  |  ![](./resources/dataset_builder.png)
