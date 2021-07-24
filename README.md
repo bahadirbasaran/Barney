@@ -205,5 +205,5 @@ python arnold.py --scenario deathmatch --wad deathmatch_rockets --n_bots 8 \
 
 <p align="center">
   <img src="./resources/datasetGeneration.png" />
+  <img src="./resources/dataset_builder.png" />
 </p>
-
