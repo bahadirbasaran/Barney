@@ -205,7 +205,7 @@ python arnold.py --scenario deathmatch --wad deathmatch_rockets --n_bots 8 \
 
 ## Dataset Generation and Analysis Using Pretrained Models
 
-In order to enable frame recording and labeling during gameplay of a pretrained agent, you need to call '--generate_dataset true' when initiating the model. The important thing to note here is that the number of agents should be set to 1 since only one agent is allowed to record frame-label pairs during a game (there is no restriction for the number of bots).
+In order to enable frame recording and labeling during gameplay of a pretrained agent, you need to call `--generate_dataset true` when initiating the model. The important thing to note here is that the number of agents should be set to 1 since only one agent is allowed to record frame-label pairs during a game (there is no restriction for the number of bots).
 
 As an example, the following command initiates a game of one agent vs. 6 bots in Map 1, with frame-label recording:
 ```bash
