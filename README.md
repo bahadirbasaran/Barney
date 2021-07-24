@@ -203,7 +203,7 @@ python arnold.py --scenario deathmatch --wad deathmatch_rockets --n_bots 8 \
 
 ## Dataset Generation and Analysis Using Pretrained Models
 
-<p align="center" style="display:flex">
-  <img style="width:250px" src="./resources/datasetGeneration.png" />
-  <img style="width:250px" src="./resources/dataset_builder.png" />
+<p style="display:flex">
+  <img style="width:200px" src="./resources/datasetGeneration.png" />
+  <img style="width:200px" src="./resources/dataset_builder.png" />
 </p>
