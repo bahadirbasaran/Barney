@@ -40,7 +40,9 @@ Barney is differentiated from Arnold in terms of automated gameplay dataset gene
 ## Installation and Dependencies
 
 Barney was tested successfully on Mac OS and Linux distributions. Dependencies are as follows:
-- Python 2/3 with NumPy and OpenCV
+- Python >= 3.5
+- NumPy
+- OpenCV
 - PyTorch
 - ViZDoom
 - plotbitrate
@@ -203,6 +205,22 @@ python arnold.py --scenario deathmatch --wad deathmatch_rockets --n_bots 8 \
 
 ## Dataset Generation and Analysis Using Pretrained Models
 
-Solarized dark             |  Solarized Ocean
+In order to enable frame recording and labeling during gameplay of a pretrained agent, you need to call '--generate_dataset true' when initiating the model. The important thing to note here is that the number of agents should be set to 1 since only one agent is allowed to record frame-label pairs during a game (there is no restriction for the number of bots).
+
+As an example, the following command initiates a game of one agent vs. 6 bots in Map 1, with frame-label recording:
+```bash
+./run.sh track1 --map_id 1 --n_bots 6 --n_agents 1 --generate_dataset true
+```
+
+The Directory *experiments* is created when an episode is initiated. Besides logs, dataset chunks are recorded into the relevant experiment folder in this directory.
+
+Once having terminated an episode, the following command builds a dataset and creates insight about game stage - bitrate correlation for each experiment in the directory *experiments*:
+```bash
+./run.sh dataset_builder
+```
+
+The figures below illustrate the frame extraction, labeling, and dataset build processes.
+
+Frame Extraction and Labeling            |  Dataset Build
 :-------------------------:|:-------------------------:
 ![](./resources/datasetGeneration.png)  |  ![](./resources/dataset_builder.png)
