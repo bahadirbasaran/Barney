@@ -13,7 +13,7 @@ Barney is differentiated from Arnold in terms of automated gameplay dataset gene
 - A package with 17 selected maps that can be used for training and evaluation
 - 5 pretrained models that you can visualize and play against, including the ones that won the ViZDoom competition
 - The script *dataset_builder* to build a dataset from the data chunks generated during an episode with the agent
-- The script *dataset_analyzer* to analyze a dataset built by the script "dataset_builder"
+- The script *dataset_analyzer* to analyze a dataset built by the script *dataset_builder*
 - *model_builder* to create a Deep Learning model to classify game stages based on stream bitrate
 
 #### Repository Structure
@@ -39,13 +39,24 @@ Barney is differentiated from Arnold in terms of automated gameplay dataset gene
 
 ## Installation and Dependencies
 
-Barney was tested successfully on Mac OS and Linux distributions. Dependencies are as follows:
+Barney was tested successfully on Mac OS and Linux distributions.
+
+Dependencies for manipulating the Deep Reinforcement Learning model to train an agent etc.:
 - Python >= 3.5
 - NumPy
 - OpenCV
 - PyTorch
 - ViZDoom
+
+Extra dependencies for the dataset generation capability:
 - plotbitrate
+
+Extra dependencies for creating a Deep Learning model for game stage classification:
+- PyTorch Lightning >= 1.2.6 for automating the model training process
+- tqdm for better process control
+- Pandas and Seaborn for data analysis
+- Scikit-learn
+
 
 Follow the instructions on https://github.com/mwydmuch/ViZDoom to install ViZDoom. Be sure that you can import ViZDoom in Python from any directory. To do so, you can either install the library with `pip`, or compile it, then move it to the `site-packages` directory of your Python installation, as explained here: https://github.com/mwydmuch/ViZDoom/blob/master/doc/Quickstart.md.
 
@@ -224,3 +235,16 @@ The figures below illustrate the frame extraction, labeling, and dataset build p
 Frame Extraction and Labeling            |  Dataset Build
 :-------------------------:|:-------------------------:
 ![](./resources/datasetGeneration.png)  |  ![](./resources/dataset_builder.png)
+
+## Deep Learning Model for Game Stage Classification
+
+To train a model on a created dataset, you need to simply call `model_builder` with a path of the dataset as in the example below:
+```bash
+./run.sh model_builder ./experiments/map_id_1/experiment_xx/dataset/dataset.csv
+```
+
+Following figure illustrates the model design at a high level:
+
+<p align="center">
+  <img src="./resources/model_builder.png" width="200" height="300"/>
+</p>
