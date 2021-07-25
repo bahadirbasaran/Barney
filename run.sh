@@ -120,5 +120,9 @@ python3 barney.py --exp_name map_id_7 --main_experiment_path $PWD/experiment \
 fi
 
 if [ "$1" == "dataset_builder" ]; then
-python3 /src/dataset_util/dataset_builder.py
+python3 ./src/dataset_util/dataset_builder.py
+fi
+
+if [ "$1" == "model_builder" ]; then
+python3 ./src/gamestage_classifier/model_builder.py $2
 fi
