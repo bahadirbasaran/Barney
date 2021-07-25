@@ -246,5 +246,5 @@ To train a model on a created dataset, you need to simply call `model_builder` w
 Following figure illustrates the model design at a high level:
 
 <p align="center">
-  <img src="./resources/model_builder.png" width="500" height="700"/>
+  <img src="./resources/model_builder.png" width="500" height="600"/>
 </p>
