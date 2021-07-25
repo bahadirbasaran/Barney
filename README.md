@@ -243,8 +243,8 @@ To train a model on a created dataset, you need to simply call `model_builder` w
 ./run.sh model_builder ./experiments/map_id_1/experiment_xx/dataset/dataset.csv
 ```
 
-Following figure illustrates the model design at a high level:
+The figure below illustrates the model design at a high level:
 
 <p align="center">
-  <img src="./resources/model_builder.png" width="500" height="600"/>
+  <img src="./resources/model_builder.png" width="400" height="500"/>
 </p>
