@@ -37,7 +37,7 @@ SMOOTHING_WINDOW_LENGTH = 18
 
 """ Utilization Functions """
 
-def createSequences(inputData: pd.DataFrame, targetData: pd.DataFrame, targetName: str, sequenceLength: int) -> list:
+def createSequences(inputData: pd.DataFrame, targetData: pd.DataFrame, targetName: str, sequenceLength: int):
   
   sequences = []
 
