@@ -37,7 +37,7 @@ SMOOTHING_WINDOW_LENGTH = 18
 
 """ Utilization Functions """
 
-def createSequences(inputData: pd.DataFrame, targetData: pd.DataFrame, targetName: str, sequenceLength: int):
+def create_sequences(inputData: pd.DataFrame, targetData: pd.DataFrame, targetName: str, sequenceLength: int):
   
   sequences = []
 
@@ -48,7 +48,7 @@ def createSequences(inputData: pd.DataFrame, targetData: pd.DataFrame, targetNam
 
   return sequences
 
-def plotConfisuonMatrix(confusionMatrix, xlabel='Predicted Gamestage', ylabel='True Gamestage'):
+def plot_confisuon_matrix(confusionMatrix, xlabel='Predicted Gamestage', ylabel='True Gamestage'):
   heatMap = sns.heatmap(confusionMatrix, annot=True, fmt='f', cmap="Blues")
   heatMap.yaxis.set_ticklabels(heatMap.yaxis.get_ticklabels(), rotation=0, ha='right')
   heatMap.xaxis.set_ticklabels(heatMap.xaxis.get_ticklabels(), rotation=0, ha='right')
@@ -56,7 +56,7 @@ def plotConfisuonMatrix(confusionMatrix, xlabel='Predicted Gamestage', ylabel='T
   plt.ylabel(ylabel)
   plt.show()
 
-def runTest(trainedModel: model_subsystem.GamestageClassifier, testDataset: model_subsystem.FrameDataset):
+def run_test(trainedModel: model_subsystem.GamestageClassifier, testDataset: model_subsystem.FrameDataset):
 
   predictions, labels = [], []
 
@@ -68,7 +68,7 @@ def runTest(trainedModel: model_subsystem.GamestageClassifier, testDataset: mode
     labels.append(label.item())
 
   confusionMatrix = pd.DataFrame(confusion_matrix(labels, predictions, normalize='true'), index = ["Exploration", "Combat"], columns = ["Exploration", "Combat"])
-  plotConfisuonMatrix(confusionMatrix)
+  plot_confisuon_matrix(confusionMatrix)
 
 if __name__ == '__main__':
 
@@ -139,9 +139,9 @@ if __name__ == '__main__':
 
   """ Data Sequence Creation """
 
-  trainSequences = createSequences(X_train_scaled, y_train, 'gamestageEMA', SEQUENCE_LENGTH)    
-  valSequences   = createSequences(X_val_scaled,   y_val,   'gamestageEMA', SEQUENCE_LENGTH)
-  testSequences  = createSequences(X_test_scaled,  y_test,  'gamestageEMA', SEQUENCE_LENGTH)
+  trainSequences = create_sequences(X_train_scaled, y_train, 'gamestageEMA', SEQUENCE_LENGTH)    
+  valSequences   = create_sequences(X_val_scaled,   y_val,   'gamestageEMA', SEQUENCE_LENGTH)
+  testSequences  = create_sequences(X_test_scaled,  y_test,  'gamestageEMA', SEQUENCE_LENGTH)
 
   """ Model Initiation """
 
